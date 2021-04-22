@@ -1,49 +1,11 @@
 import json
 import os
-from datetime import datetime
-from utils import get_timestamp
+
 import torch
 import torch.nn as nn
 
 
-# class Wrapper(object):
-#
-#     def get_num_regions(self):
-#         pass
-#
-#     def check_discriminator_exists(self):
-#         pass
-#
-#     def change_to_train_mode(self):
-#         pass
-#
-#     def change_to_eval_mode(self):
-#         pass
-#
-#     def parameters(self):
-#         pass
-#
-#     def compute_classification_loss(self, data, label):
-#         pass
-#
-#     def compute_total_loss(self, source_data, target_data, source_label, domain_source_labels, domain_target_labels,
-#                            **kwargs):
-#         pass
-#
-#     def calculate_classifier_correctness(self, data, label):
-#         pass
-#
-#     def calculate_domain_discriminator_correctness(self, data, is_source=True):
-#         pass
-#
-#     def save_model(self, root, task_id, file_name, timestamp):
-#         pass
-#
-#     def get_global_classifier_parameters(self, get_tensor=False):
-#         pass
-
-
-class ModelWrapper(Wrapper):
+class ModelWrapper():
 
     def __init__(self, extractor, classifier, discriminator=None):
         self.extractor = extractor
