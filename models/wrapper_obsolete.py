@@ -122,7 +122,7 @@ class ModelWrapper():
         return pred_cls.eq(labels).sum().item()
 
 
-class GlobalModelWrapper(Wrapper):
+class GlobalModelWrapper():
     def __init__(self, complex_wrapper_list, classifier):
         self.complex_wrapper_list = complex_wrapper_list
         self.classifier = classifier

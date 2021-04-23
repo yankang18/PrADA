@@ -297,12 +297,9 @@ class GlobalModel(object):
         embeddings = feat_dict.get("embeddings")
         if embeddings is not None:
             for key, feat in embeddings.items():
-                # print("emb key", key)
                 embedding = self.embedding_dict[key]
                 feat = feat.long()
-                # print("feat shape:", feat)
                 emb = embedding(feat)
-                # print(f"key:{key}, emb shape: \n  {emb.shape}")
                 features_list.append(emb)
         non_embedding = feat_dict.get("non_embedding")
         if non_embedding is not None:

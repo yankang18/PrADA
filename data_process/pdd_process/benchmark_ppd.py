@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from sklearn.utils import shuffle
-
+from datasets.ppd_dataloader import get_selected_columns
 from data_process.cell_process.bechmark import run_benchmark
 
 
@@ -25,6 +25,16 @@ def train_on_dann(file_dict):
     src_train_data = pd.read_csv(data_dir + source_train_file, skipinitialspace=True)
     tgt_train_data = pd.read_csv(data_dir + target_train_file, skipinitialspace=True)
     tgt_test_data = pd.read_csv(data_dir + target_test_file, skipinitialspace=True)
+
+    train_columns = get_selected_columns(src_train_data, use_all=True)
+    print("[INFO] select_columns:", len(train_columns), train_columns)
+    src_train_data = src_train_data[train_columns]
+    tgt_train_data = tgt_train_data[train_columns]
+    tgt_test_data = tgt_test_data[train_columns]
+
+    print("[INFO] columns:", src_train_data.columns, len(src_train_data.columns))
+    print("[INFO] columns:", tgt_train_data.columns, len(tgt_train_data.columns))
+    print("[INFO] columns:", tgt_test_data.columns, len(tgt_test_data.columns))
 
     tgt_train_label = tgt_train_data.values[:, -1].reshape(-1, 1)
     tgt_test_label = tgt_test_data.values[:, -1].reshape(-1, 1)

@@ -1,6 +1,6 @@
-from datasets.pdd_dataloader import get_pdd_dataloaders_ob
+from datasets.ppd_dataloader import get_pdd_dataloaders_ob
 from models.experiment_target_learner import FederatedTargetLearner
-from experiments.kesci_ppd.train_pdd_dann_no_fg import create_global_model_wrapper
+from experiments.kesci_ppd.train_ppd_dann_no_fg import create_global_model_wrapper
 from utils import test_classification
 
 if __name__ == "__main__":

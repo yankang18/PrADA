@@ -50,10 +50,25 @@ def wire_global_model(embedding_dict,
                       input_dims_list,
                       num_wide_feature,
                       using_feature_group,
+                      using_interaction,
                       using_transform_matrix,
                       partition_data_fn,
                       create_model_group_fn,
                       pos_class_weight=1.0):
+    """
+    wire up all models together as a single model for end-to-end training
+
+    parameters:
+    ----------
+    embedding_dict,
+    input_dims_list,
+    num_wide_feature,
+    using_feature_group,
+    using_interaction,
+    using_transform_matrix,
+    partition_data_fn,
+    create_model_group_fn,
+    """
     if using_feature_group:
         print(f"[INFO] input_dims_list:{input_dims_list}, len:{len(input_dims_list)}")
         region_model_list = create_region_model_list(input_dims_list, create_model_group_fn)
@@ -61,8 +76,13 @@ def wire_global_model(embedding_dict,
         region_model_list = list()
     print(f"[INFO] region_model_list len:{len(region_model_list)}")
 
-    interaction_model = create_interaction_model(input_dims_list, create_model_group_fn, using_transform_matrix)
-    global_input_dim = num_wide_feature + len(region_model_list) + interaction_model.get_num_feature_groups()
+    interaction_model = None
+    interactive_group_num = 0
+    if using_interaction:
+        interaction_model = create_interaction_model(input_dims_list, create_model_group_fn, using_transform_matrix)
+        interactive_group_num = interaction_model.get_num_feature_groups()
+
+    global_input_dim = num_wide_feature + len(region_model_list) + interactive_group_num
     print(f"[INFO] global_input_dim length:{global_input_dim}")
     classifier = GlobalClassifier(input_dim=global_input_dim)
     global_model = GlobalModel(classifier, region_model_list, embedding_dict, partition_data_fn,

@@ -1,6 +1,6 @@
-from datasets.pdd_dataloader import get_pdd_dataloaders_ob
+from datasets.ppd_dataloader import get_pdd_dataloaders_ob
 from models.experiment_target_learner import FederatedTargetLearner
-from experiments.kesci_ppd.train_pdd_dann import construct_global_model
+from experiments.kesci_ppd.train_ppd_dann import create_pdd_global_model
 from utils import test_classification, get_timestamp
 
 
@@ -30,13 +30,13 @@ if __name__ == "__main__":
     # # DA: 75.3, 40.39;
     # dann_task_id = '20210331_PDD_pw1.0_bs256_lr0.0015_v0_t1617217008'
 
-    dann_task_id = '20210407_PDD_pw1.0_bs256_lr0.001_v0_t1617735343'
+    dann_task_id = '20210407_PDD_pw1.0_bs256_lr0.001_v0_t1619118205'
 
     # DA: 75.9, 41.33;
     # dann_task_id = '20210331_PDD_pw1.0_bs256_lr0.0015_v0_t1617157138'
 
     # Load models
-    wrapper = construct_global_model(pos_class_weight=1.0)
+    wrapper = create_pdd_global_model()
 
     # load pre-trained model,
     # If load_global_classifier = True, meaning we are going to fine-tune the global classier.

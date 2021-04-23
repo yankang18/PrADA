@@ -1,6 +1,6 @@
 from collections import OrderedDict
 
-from datasets.pdd_dataloader import get_pdd_dataloaders_ob
+from datasets.ppd_dataloader import get_pdd_dataloaders_ob
 from experiments.kesci_ppd.meta_data import column_name_list, df_group_ind_list, df_cat_mask_list, df_group_index
 from models.classifier import GlobalClassifier, CensusRegionAggregator, IdentityRegionAggregator
 from models.dann_models import GlobalModel, RegionalModel, create_embeddings

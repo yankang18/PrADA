@@ -1,6 +1,6 @@
 from collections import OrderedDict
 
-from datasets.pdd_dataloader import get_datasets, get_dataloader
+from datasets.ppd_dataloader import get_datasets, get_dataloader
 from experiments.kesci_ppd.meta_data import column_name_list, df_group_ind_list, df_cat_mask_list, df_group_index
 from models.classifier import CensusRegionAggregator
 from models.dann_models import create_embeddings
@@ -28,6 +28,7 @@ def parse_domain_data(data, column_name_list, df_group_ind_list, df_cat_mask_lis
     for group_ind, is_cat, group_index in zip(df_group_ind_list, df_cat_mask_list, df_group_index_list):
         start_index = group_index[0]
         length = group_index[1]
+        # 2 stands for wide features
         if group_ind == 2:
             wide_feat_list.append(data[:, start_index:start_index + length])
         elif group_ind == 1:
@@ -119,25 +120,28 @@ def create_pdd_global_model():
     #                    [35, 50, 35, 8],
     #                    [21, 30, 21, 8],
     #                    [58, 80, 58, 10]]
-    input_dims_list = [[15, 24, 15, 6],
-                       [85, 120, 85, 10],
-                       [35, 50, 35, 8],
-                       [21, 30, 21, 8],
-                       [58, 80, 58, 10]]
-    # input_dims_list = [[15, 24, 15, 8],
-    #                    [85, 120, 85, 8],
+    # input_dims_list = [[15, 24, 15, 6],
+    #                    [85, 120, 85, 10],
     #                    [35, 50, 35, 8],
     #                    [21, 30, 21, 8],
-    #                    [58, 80, 58, 8]]
+    #                    [58, 80, 58, 10]]
+    input_dims_list = [[15, 24, 15, 6],
+                       [85, 120, 85, 8],
+                       [35, 50, 35, 8],
+                       [21, 30, 21, 8],
+                       [58, 80, 58, 8]]
 
+    # num_wide_feature = 10
     num_wide_feature = 17
     using_feature_group = True
+    using_interaction = True
     using_transform_matrix = True
 
     global_model = wire_global_model(embedding_dict=embedding_dict,
                                      input_dims_list=input_dims_list,
                                      num_wide_feature=num_wide_feature,
                                      using_feature_group=using_feature_group,
+                                     using_interaction=using_interaction,
                                      using_transform_matrix=using_transform_matrix,
                                      partition_data_fn=partition_data,
                                      create_model_group_fn=create_model_group,
@@ -148,71 +152,71 @@ def create_pdd_global_model():
 
 if __name__ == "__main__":
     # data_dir = "../../../Data/Data_Open_Analysis_master/Kesci_PPD/PPD_data/"
-    import os
+    # import os
+    #
+    # dirpath = os.path.dirname(__file__)
+    # print("dirpath", dirpath)
 
-    dirpath = os.path.dirname(__file__)
-    print("dirpath", dirpath)
+    exp_dir = "ppd_dann"
+    data_dir = "/Users/yankang/Documents/Data/Data_Open_Analysis_master/Kesci_PPD/PPD_data_v1/"
+    source_train_file_name = data_dir + "PPD_2014_1to9_train.csv"
+    target_train_file_name = data_dir + 'PPD_2014_10to12_train.csv'
+    source_test_file_name = data_dir + 'PPD_2014_1to9_test.csv'
+    target_test_file_name = data_dir + 'PPD_2014_10to12_test.csv'
 
+    split_ratio = 1.0
+    src_train_dataset, _ = get_datasets(ds_file_name=source_train_file_name, shuffle=True, split_ratio=split_ratio)
+    tgt_train_dataset, _ = get_datasets(ds_file_name=target_train_file_name, shuffle=True, split_ratio=split_ratio)
+    src_test_dataset, _ = get_datasets(ds_file_name=source_test_file_name, shuffle=True, split_ratio=split_ratio)
+    tgt_test_dataset, _ = get_datasets(ds_file_name=target_test_file_name, shuffle=True, split_ratio=split_ratio)
+
+    # batch_size_list = [512]
+    batch_size_list = [256]
+    learning_rate_list = [1.5e-3]
+    # learning_rate_list = [1.2e-3]
+    # learning_rate_list = [6e-4]
+    # batch_size_list = [256, 512]
+    # learning_rate_list = [3e-4, 8e-4, 1e-3]
+    tries = 1
+    pos_class_weight = 1.0
+    param_comb_list = list()
+    for lr in learning_rate_list:
+        for bs in batch_size_list:
+            param_comb_list.append((lr, bs))
+    date = "20210423_PDD"
+
+    # date = "20200118_PDD"; batch_size = 512; lr = 1e-3; version = 3
+    # task_id = date + "_" + str(batch_size) + "_" + str(lr) + "_" + str(version)
     # exp_dir = "ppd_dann"
-    # data_dir = "/Users/yankang/Documents/Data/Data_Open_Analysis_master/Kesci_PPD/PPD_data_v1/"
-    # source_train_file_name = data_dir + "PPD_2014_1to9_train.csv"
-    # target_train_file_name = data_dir + 'PPD_2014_10to12_train.csv'
-    # source_test_file_name = data_dir + 'PPD_2014_1to9_test.csv'
-    # target_test_file_name = data_dir + 'PPD_2014_10to12_test.csv'
-    #
-    # split_ratio = 1.0
-    # src_train_dataset, _ = get_datasets(ds_file_name=source_train_file_name, shuffle=True, split_ratio=split_ratio)
-    # tgt_train_dataset, _ = get_datasets(ds_file_name=target_train_file_name, shuffle=True, split_ratio=split_ratio)
-    # src_test_dataset, _ = get_datasets(ds_file_name=source_test_file_name, shuffle=True, split_ratio=split_ratio)
-    # tgt_test_dataset, _ = get_datasets(ds_file_name=target_test_file_name, shuffle=True, split_ratio=split_ratio)
-    #
-    # # batch_size_list = [512]
-    # batch_size_list = [256]
-    # learning_rate_list = [1.0e-3]
-    # # learning_rate_list = [1.2e-3]
-    # # learning_rate_list = [6e-4]
-    # # batch_size_list = [256, 512]
-    # # learning_rate_list = [3e-4, 8e-4, 1e-3]
-    # tries = 1
-    # pos_class_weight = 1.0
-    # param_comb_list = list()
-    # for lr in learning_rate_list:
-    #     for bs in batch_size_list:
-    #         param_comb_list.append((lr, bs))
-    # date = "20210407_PDD"
-    #
-    # # date = "20200118_PDD"; batch_size = 512; lr = 1e-3; version = 3
-    # # task_id = date + "_" + str(batch_size) + "_" + str(lr) + "_" + str(version)
-    # # exp_dir = "ppd_dann"
-    #
-    # timestamp = get_timestamp()
-    # for param_comb in param_comb_list:
-    #     lr, bs = param_comb
-    #     for version in range(tries):
-    #         task_id = date + "_pw" + str(pos_class_weight) + "_bs" + str(bs) + "_lr" + str(lr) + "_v" + str(
-    #             version) + "_t" + str(timestamp)
-    #         print("[INFO] perform task:{0}".format(task_id))
-    #
-    #         global_model = create_pdd_global_model()
-    #         print("[INFO] model created.")
-    #
-    #         src_train_loader = get_dataloader(src_train_dataset, batch_size=bs)
-    #         tgt_train_loader = get_dataloader(tgt_train_dataset, batch_size=bs)
-    #         print("[INFO] train data loaded.")
-    #
-    #         src_test_loader = get_dataloader(src_test_dataset, batch_size=bs * 2)
-    #         tgt_test_loader = get_dataloader(tgt_test_dataset, batch_size=bs * 2)
-    #         print("[INFO] test data loaded.")
-    #
-    #         plat = FederatedDAANLearner(model=global_model,
-    #                                     source_train_loader=src_train_loader,
-    #                                     source_val_loader=src_test_loader,
-    #                                     target_train_loader=tgt_train_loader,
-    #                                     target_val_loader=tgt_test_loader,
-    #                                     max_epochs=400,
-    #                                     epoch_patience=10)
-    #         # wrapper.print_global_classifier_param()
-    #         plat.set_model_save_info(exp_dir)
-    #         plat.train_dann(epochs=120, lr=lr, task_id=task_id)
-    #
-    #         global_model.print_parameters()
+
+    timestamp = get_timestamp()
+    for param_comb in param_comb_list:
+        lr, bs = param_comb
+        for version in range(tries):
+            task_id = date + "_pw" + str(pos_class_weight) + "_bs" + str(bs) + "_lr" + str(lr) + "_v" + str(
+                version) + "_t" + str(timestamp)
+            print("[INFO] perform task:{0}".format(task_id))
+
+            global_model = create_pdd_global_model()
+            print("[INFO] model created.")
+
+            src_train_loader = get_dataloader(src_train_dataset, batch_size=bs)
+            tgt_train_loader = get_dataloader(tgt_train_dataset, batch_size=bs)
+            print("[INFO] train data loaded.")
+
+            src_test_loader = get_dataloader(src_test_dataset, batch_size=bs * 2)
+            tgt_test_loader = get_dataloader(tgt_test_dataset, batch_size=bs * 2)
+            print("[INFO] test data loaded.")
+
+            plat = FederatedDAANLearner(model=global_model,
+                                        source_train_loader=src_train_loader,
+                                        source_val_loader=src_test_loader,
+                                        target_train_loader=tgt_train_loader,
+                                        target_val_loader=tgt_test_loader,
+                                        max_epochs=400,
+                                        epoch_patience=10)
+            # wrapper.print_global_classifier_param()
+            plat.set_model_save_info(exp_dir)
+            plat.train_dann(epochs=120, lr=lr, task_id=task_id)
+
+            global_model.print_parameters()

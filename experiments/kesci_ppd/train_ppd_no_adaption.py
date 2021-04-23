@@ -1,5 +1,5 @@
-from datasets.pdd_dataloader import get_datasets, get_dataloader
-from experiments.kesci_ppd.train_pdd_dann import construct_global_model
+from datasets.ppd_dataloader import get_datasets, get_dataloader
+from experiments.kesci_ppd.train_ppd_dann import construct_global_model
 from models.experiment_dann_learner import FederatedDAANLearner
 from utils import get_timestamp
 

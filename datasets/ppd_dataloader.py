@@ -4,6 +4,22 @@ from torch.utils.data import DataLoader
 
 from datasets.census_dataset import SimpleDataset
 
+wide_columns = ['UserInfo_10', 'UserInfo_14', 'UserInfo_15', 'UserInfo_18', 'UserInfo_22', 'UserInfo_3',
+                'UserInfo_16', 'UserInfo_1', 'UserInfo_23', 'UserInfo_9']
+
+
+def get_selected_columns(df, use_all=True):
+    """
+    select subset of all columns for training
+    """
+    all_columns = list(df.columns)
+    if use_all:
+        # use all features
+        return all_columns
+    deep_columns = all_columns[17:]
+    select_columns = wide_columns + deep_columns
+    return select_columns
+
 
 def shuffle_data(data):
     len = data.shape[0]
@@ -13,8 +29,7 @@ def shuffle_data(data):
 
 def get_datasets(ds_file_name, shuffle=False, split_ratio=0.9):
     dataframe = pd.read_csv(ds_file_name, skipinitialspace=True)
-    # print(dataframe.head(50))
-    samples = dataframe.values
+    samples = dataframe[get_selected_columns(dataframe, use_all=True)].values
     num_pos = np.sum(samples[:, -1])
     num_neg = len(samples) - num_pos
     print(f"[INFO] ---- number of positive sample:{num_pos}")

@@ -9,11 +9,15 @@ from utils import get_timestamp
 
 
 def partition_data(data):
+    """
+    partition data into party C and party A(B). Data in party C is partitioned into group
+    """
     deep_partition = list()
-    # wide_feat = list()
 
+    # in this particular Tencent Cell Data scenario, data[0] is the tabular data set located in party A (or party B)
     wide_feat = [data[0]]
 
+    # all other tabular data sets are located in party C (each tabular data set corresponds to a feature group)
     for idx in range(1, len(data)):
         feat = {"non_embedding": {"tabular_data": data[idx]}}
         deep_partition.append(feat)
@@ -22,29 +26,32 @@ def partition_data(data):
 
 
 def create_model_group(extractor_input_dims):
+    """
+    create a group of models, namely feature extractor, aggregator and discriminator, for each feature group
+    """
     extractor = CensusRegionFeatureExtractorDense(input_dims=extractor_input_dims)
-    classifier = CensusRegionAggregator(input_dim=extractor_input_dims[-1])
+    aggregator = CensusRegionAggregator(input_dim=extractor_input_dims[-1])
     discriminator = CensusRegionDiscriminator(input_dim=extractor_input_dims[-1])
-    return extractor, classifier, discriminator
+    return extractor, aggregator, discriminator
 
 
 def create_embedding_dict():
-    COLUMNS = {'年龄分段': 10, '年龄预测': 7, '学历': 8, '资产属性': 6, '收入水平': 6}
+    """
+    create embedding dictionary for categorical features/columns
+    """
+
+    cat_feature_dict = {'年龄分段': 10, '年龄预测': 7, '学历': 8, '资产属性': 6, '收入水平': 6}
     embedding_meta_dict = dict()
-    for col, num_values in COLUMNS.items():
+    for col, num_values in cat_feature_dict.items():
         embedding_meta_dict[col] = (num_values, num_values - 1)
     print(f"[INFO] Create embedding_meta_dict: \t {embedding_meta_dict}")
     return create_embeddings(embedding_meta_dict)
 
 
-# def create_region_model_list(input_dims_list):
-#     wrapper_list = list()
-#     for input_dims in input_dims_list:
-#         wrapper_list.append(create_region_model_wrapper(input_dims))
-#     return wrapper_list
-
-
 def compute_feature_group_interaction(input_dims_list):
+    """
+
+    """
     input_int_dims_list = [e for e in input_dims_list]
     start_index = 1
     for fg in input_dims_list:
@@ -59,10 +66,7 @@ def create_global_daan_model(pos_class_weight=1.0):
     # embedding_dim = 8
     embedding_dict = create_embedding_dict()
 
-    census_input_dims_list = [[48, 50, 48, 6],
-                              [32, 40, 32, 6],
-                              [32, 40, 32, 6]]
-    # architecture 1
+    # feature extractor architectures for feature groups (only contain dense layers)
     input_dims_list = [[17, 24, 17, 6],
                        [16, 20, 16, 6],
                        [22, 26, 22, 6],
