@@ -1,5 +1,5 @@
 from datasets.cell_manage_dataloader import get_dataset, get_cell_manager_dataloader
-from experiments.tencent_cell_manage.train_cell_dann import create_global_daan_model
+from experiments.tencent_cell_manage.train_cell_dann import create_global_dann_model
 from models.experiment_dann_learner import FederatedDAANLearner
 from utils import get_timestamp
 
@@ -45,7 +45,7 @@ if __name__ == "__main__":
                 version) + "_t" + str(timestamp)
             print("[INFO] perform task:{0}".format(task_id))
 
-            daan_model = create_global_daan_model(pos_class_weight=pos_class_weight)
+            daan_model = create_global_dann_model(pos_class_weight=pos_class_weight)
             print("[INFO] model created.")
 
             if is_all:

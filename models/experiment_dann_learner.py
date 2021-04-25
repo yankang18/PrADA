@@ -91,7 +91,7 @@ class FederatedDAANLearner(object):
         self.global_model.save_model(self.root, task_id, self.task_meta_file_name, timestamp=timestamp)
 
     def train_wo_adaption(self, epochs, lr, task_id, source=True):
-        optimizer = optim.SGD(self.global_model.parameters(), lr=lr, momentum=0.99, weight_decay=0.0001)
+        optimizer = optim.SGD(self.global_model.parameters(), lr=lr, momentum=0.95, weight_decay=0.0001)
         # optimizer = optim.Adam(self.global_model.parameters(), lr=lr, weight_decay=0.0001)
 
         train_loader = self.src_train_loader if source else self.tgt_train_loader
@@ -204,14 +204,6 @@ class FederatedDAANLearner(object):
                 p = float(batch_idx + start_steps) / total_steps
                 alpha = 2. / (1. + np.exp(-10 * p)) - 1
                 curr_lr = adjust_learning_rate(optimizer, p, lr_0=lr)
-
-                # print(f"[DEBUG] curr_lr:{curr_lr}, p:{p}, alpha:{alpha}")
-
-                # source_data, source_label = source_batch
-                # target_data, target_label = target_batch
-
-                # print(f"source data 0,1 shape : {source_data_0.shape}, {source_data_1.shape}")
-                # print(f"source data 2,3 shape : {source_data_2.shape}, {source_data_3.shape}")
 
                 # source has domain label of zero, while target has domain label of one
                 domain_source_labels = torch.zeros(source_label.shape[0]).long()

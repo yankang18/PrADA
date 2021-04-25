@@ -1,5 +1,5 @@
 from datasets.cell_manage_dataloader import get_cell_manager_dataloader_ob
-from experiments.tencent_cell_manage.train_cell_dann import create_global_daan_model
+from experiments.tencent_cell_manage.train_cell_dann import create_global_dann_model
 
 from utils import test_classification
 
@@ -11,7 +11,7 @@ if __name__ == "__main__":
     # dann_task_id = "20200615_logitic1_02_lr_0003_w_10"
     dann_task_id = "20200729_BCE_03_lr_00001_w_10"
     # Load models
-    wrapper = create_global_daan_model()
+    wrapper = create_global_dann_model()
 
     # load trained model
     # timestamp = 1592169013

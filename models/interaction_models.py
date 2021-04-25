@@ -48,7 +48,7 @@ class AttentiveFeatureComputer(object):
             trans_model_path = os.path.join(model_root, trans_model_name)
             torch.save(trans_model.state_dict(), trans_model_path)
             transform_matrix_path_dict[key] = trans_model_path
-            print(f"[INFO] saved transform matrix model to {trans_model_path}")
+            print(f"[INFO] saved transform matrix model {[trans_model_name]} to {trans_model_path}")
         return transform_matrix_path_dict
 
     def freeze(self, is_freeze=False):
@@ -237,7 +237,7 @@ class InteractionModel(object):
 
     def change_to_eval_mode(self):
         if self.int_feat_computer:
-            self.int_feat_computer.change_to_train_mode()
+            self.int_feat_computer.change_to_eval_mode()
 
         for extractor, aggregator, discriminator in zip(self.extractor_list,
                                                         self.aggregator_list,

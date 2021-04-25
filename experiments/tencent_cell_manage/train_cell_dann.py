@@ -48,21 +48,18 @@ def create_embedding_dict():
     return create_embeddings(embedding_meta_dict)
 
 
-def compute_feature_group_interaction(input_dims_list):
-    """
-
-    """
-    input_int_dims_list = [e for e in input_dims_list]
-    start_index = 1
-    for fg in input_dims_list:
-        for i in range(start_index, len(input_dims_list)):
-            fg_2 = input_dims_list[i]
-            input_int_dims_list.append([v1 + v2 for v1, v2 in zip(fg, fg_2)])
-        start_index += 1
-    return input_int_dims_list
+# def compute_feature_group_interaction(input_dims_list):
+#     input_int_dims_list = [e for e in input_dims_list]
+#     start_index = 1
+#     for fg in input_dims_list:
+#         for i in range(start_index, len(input_dims_list)):
+#             fg_2 = input_dims_list[i]
+#             input_int_dims_list.append([v1 + v2 for v1, v2 in zip(fg, fg_2)])
+#         start_index += 1
+#     return input_int_dims_list
 
 
-def create_global_daan_model(pos_class_weight=1.0):
+def create_global_dann_model(pos_class_weight=1.0):
     # embedding_dim = 8
     embedding_dict = create_embedding_dict()
 
@@ -182,6 +179,7 @@ if __name__ == "__main__":
     pos_class_weight = 1.0
     epoch_patience = 1.0
     param_comb_list = list()
+    # create a list of hypter-parameter combination
     for lr in learning_rate_list:
         for bs in batch_size_list:
             param_comb_list.append((lr, bs))
@@ -194,7 +192,7 @@ if __name__ == "__main__":
                 version) + "_t" + str(timestamp)
             print("[INFO] perform task:{0}".format(task_id))
 
-            daan_model = create_global_daan_model(pos_class_weight=pos_class_weight)
+            daan_model = create_global_dann_model(pos_class_weight=pos_class_weight)
             print("[INFO] model created.")
 
             src_train_loader = get_cell_manager_dataloader(src_train_ds, batch_size=bs)

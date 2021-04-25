@@ -1,6 +1,6 @@
 from datasets.cell_manage_dataloader import get_cell_manager_dataloader_ob
 from models.experiment_target_learner import FederatedTargetLearner
-from experiments.tencent_cell_manage.train_cell_dann import create_global_daan_model
+from experiments.tencent_cell_manage.train_cell_dann import create_global_dann_model
 # from train_census_target_test import test_classification
 from utils import test_classification
 
@@ -46,7 +46,7 @@ if __name__ == "__main__":
     #
     # Load models
     #
-    wrapper = create_global_daan_model(pos_class_weight=20.0)
+    wrapper = create_global_dann_model(pos_class_weight=20.0)
 
     #
     # load pre-trained model
