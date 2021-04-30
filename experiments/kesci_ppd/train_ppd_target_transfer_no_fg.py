@@ -43,7 +43,7 @@ if __name__ == "__main__":
         ds_file_name=target_test_file_name, batch_size=batch_size, split_ratio=1.0)
 
     # perform target training
-    plat_target = FederatedTargetLearner(wrapper=wrapper,
+    plat_target = FederatedTargetLearner(model=wrapper,
                                          target_train_loader=target_train_loader,
                                          target_val_loader=target_valid_loader,
                                          patience=800,

@@ -4,8 +4,11 @@ from torch.utils.data import DataLoader
 
 from datasets.census_dataset import SimpleDataset
 
-wide_columns = ['UserInfo_10', 'UserInfo_14', 'UserInfo_15', 'UserInfo_18', 'UserInfo_22', 'UserInfo_3',
-                'UserInfo_16', 'UserInfo_1', 'UserInfo_23', 'UserInfo_9']
+# wide_columns = ['UserInfo_10', 'UserInfo_14', 'UserInfo_15', 'UserInfo_18', 'UserInfo_22', 'UserInfo_3',
+#                 'UserInfo_16', 'UserInfo_1', 'UserInfo_23', 'UserInfo_9']
+
+
+wide_columns = ['UserInfo_10', 'UserInfo_14', 'UserInfo_15', 'UserInfo_18', 'UserInfo_13']
 
 
 def get_selected_columns(df, use_all=True):

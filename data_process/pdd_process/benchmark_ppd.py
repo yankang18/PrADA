@@ -26,7 +26,7 @@ def train_on_dann(file_dict):
     tgt_train_data = pd.read_csv(data_dir + target_train_file, skipinitialspace=True)
     tgt_test_data = pd.read_csv(data_dir + target_test_file, skipinitialspace=True)
 
-    train_columns = get_selected_columns(src_train_data, use_all=True)
+    train_columns = get_selected_columns(src_train_data, use_all=False)
     print("[INFO] select_columns:", len(train_columns), train_columns)
     src_train_data = src_train_data[train_columns]
     tgt_train_data = tgt_train_data[train_columns]

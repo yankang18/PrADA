@@ -1,8 +1,7 @@
 from datasets.ppd_dataloader import get_pdd_dataloaders_ob
-from models.experiment_target_learner import FederatedTargetLearner
 from experiments.kesci_ppd.train_ppd_dann import create_pdd_global_model
-from utils import test_classification, get_timestamp
-
+from models.experiment_target_learner import FederatedTargetLearner
+from utils import test_classification, get_timestamp, get_current_date
 
 if __name__ == "__main__":
     dann_root_folder = "ppd_dann"
@@ -30,16 +29,16 @@ if __name__ == "__main__":
     # # DA: 75.3, 40.39;
     # dann_task_id = '20210331_PDD_pw1.0_bs256_lr0.0015_v0_t1617217008'
 
-    dann_task_id = '20210407_PDD_pw1.0_bs256_lr0.001_v0_t1619118205'
-
     # DA: 75.9, 41.33;
     # dann_task_id = '20210331_PDD_pw1.0_bs256_lr0.0015_v0_t1617157138'
+
+    dann_task_id = '20210430_PDD_pw1.0_bs512_lr0.0012_v0_t1619741018'
 
     # Load models
     wrapper = create_pdd_global_model()
 
     # load pre-trained model,
-    # If load_global_classifier = True, meaning we are going to fine-tune the global classier.
+    # If load_global_classifier = True, meaning that we are going to fine-tune the global classier.
     # Otherwise, we train the global classifier from the scratch.
     load_global_classifier = False
     wrapper.load_model(root=dann_root_folder,
@@ -67,7 +66,7 @@ if __name__ == "__main__":
         ds_file_name=target_test_file_name, batch_size=batch_size, split_ratio=1.0)
 
     # perform target training
-    plat_target = FederatedTargetLearner(wrapper=wrapper,
+    plat_target = FederatedTargetLearner(model=wrapper,
                                          target_train_loader=target_train_loader,
                                          target_val_loader=target_valid_loader,
                                          patience=800,
@@ -76,10 +75,10 @@ if __name__ == "__main__":
 
     timestamp = get_timestamp()
     version = 1
-    # lr = 2e-4
+    # lr = 5e-4
     lr = 3e-4
     # lr = 8e-5
-    date = "20210407"
+    date = get_current_date() + "_PDD"
     glr = "ft_glr" if load_global_classifier else "rt_glr"
     tag = "_target_" + date + "_" + glr + "_" + str(batch_size) + "_" + str(lr) + "_v" + str(version)
     target_task_id = dann_task_id + tag

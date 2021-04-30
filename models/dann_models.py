@@ -5,7 +5,6 @@ import torch
 import torch.nn as nn
 
 from utils import get_latest_timestamp
-# from models.wrapper_obsolete import Wrapper
 
 
 def create_embedding(size):
@@ -220,6 +219,7 @@ class GlobalModel(object):
             for param in emb.parameters():
                 param.requires_grad = not is_freeze
 
+        # freeze interaction model
         if self.feature_interactive_model: self.feature_interactive_model.freeze(is_freeze)
 
     # TODO add feature_interactive_model
@@ -299,6 +299,7 @@ class GlobalModel(object):
             for key, feat in embeddings.items():
                 embedding = self.embedding_dict[key]
                 feat = feat.long()
+                # print("@@:", key, feat)
                 emb = embedding(feat)
                 features_list.append(emb)
         non_embedding = feat_dict.get("non_embedding")
@@ -318,14 +319,14 @@ class GlobalModel(object):
             return True
         return False
 
-    def compute_fg_loss(self,
-                        total_domain_loss,
-                        output_list,
-                        src_feat_gp_list,
-                        tgt_feat_gp_list,
-                        domain_source_labels,
-                        domain_target_labels,
-                        **kwargs):
+    def compute_feature_group_loss(self,
+                                   total_domain_loss,
+                                   output_list,
+                                   src_feat_gp_list,
+                                   tgt_feat_gp_list,
+                                   domain_source_labels,
+                                   domain_target_labels,
+                                   **kwargs):
         if self.is_regional_model_list_empty() is False:
             for regional_model, src_fg, tgt_fg in zip(self.regional_model_list, src_feat_gp_list, tgt_feat_gp_list):
                 domain_loss, output = regional_model.compute_loss(src_fg,
@@ -337,14 +338,14 @@ class GlobalModel(object):
                 total_domain_loss += domain_loss
         return total_domain_loss, output_list
 
-    def compute_fgt_loss(self,
-                         total_domain_loss,
-                         output_list,
-                         src_feat_gp_list,
-                         tgt_feat_gp_list,
-                         domain_source_labels,
-                         domain_target_labels,
-                         **kwargs):
+    def compute_feature_group_interaction_loss(self,
+                                               total_domain_loss,
+                                               output_list,
+                                               src_feat_gp_list,
+                                               tgt_feat_gp_list,
+                                               domain_source_labels,
+                                               domain_target_labels,
+                                               **kwargs):
         if self.feature_interactive_model:
             intr_domain_loss, int_output_list = self.feature_interactive_model.compute_loss(src_feat_gp_list,
                                                                                             tgt_feat_gp_list,
@@ -384,13 +385,13 @@ class GlobalModel(object):
 
         total_domain_loss = torch.tensor(0.)
         output_list = []
-        total_domain_loss, output_list = self.compute_fg_loss(total_domain_loss,
-                                                              output_list,
-                                                              src_feat_gp_list,
-                                                              tgt_feat_gp_list,
-                                                              domain_source_labels,
-                                                              domain_target_labels,
-                                                              **kwargs)
+        total_domain_loss, output_list = self.compute_feature_group_loss(total_domain_loss,
+                                                                         output_list,
+                                                                         src_feat_gp_list,
+                                                                         tgt_feat_gp_list,
+                                                                         domain_source_labels,
+                                                                         domain_target_labels,
+                                                                         **kwargs)
         # for regional_model, src_fg, tgt_fg in zip(self.regional_model_list, src_feat_gp_list, tgt_feat_gp_list):
         #     domain_loss, output = regional_model.compute_loss(src_fg,
         #                                                       tgt_fg,
@@ -400,13 +401,13 @@ class GlobalModel(object):
         #     output_list.append(output)
         #     total_domain_loss += domain_loss
 
-        total_domain_loss, output_list = self.compute_fgt_loss(total_domain_loss,
-                                                               output_list,
-                                                               src_feat_gp_list,
-                                                               tgt_feat_gp_list,
-                                                               domain_source_labels,
-                                                               domain_target_labels,
-                                                               **kwargs)
+        total_domain_loss, output_list = self.compute_feature_group_interaction_loss(total_domain_loss,
+                                                                                     output_list,
+                                                                                     src_feat_gp_list,
+                                                                                     tgt_feat_gp_list,
+                                                                                     domain_source_labels,
+                                                                                     domain_target_labels,
+                                                                                     **kwargs)
 
         output_list = src_wide_list + output_list if len(src_wide_list) > 0 else output_list
         output = torch.cat(output_list, dim=1)
@@ -424,7 +425,7 @@ class GlobalModel(object):
         total_loss = class_loss + self.beta * total_domain_loss
         return total_loss
 
-    def _calculate_regional_fg_output_list(self, deep_par_list):
+    def _calculate_feature_group_output_list(self, deep_par_list):
         # print("=" * 30)
         fg_list = []
         for fg_data in deep_par_list:
@@ -434,41 +435,42 @@ class GlobalModel(object):
             else [regional_model.compute_output(fg) for regional_model, fg in
                   zip(self.regional_model_list, fg_list)]
 
+        # compute output from feature interaction model that wraps feature interactions
         fgi_output_list = None if self.feature_interactive_model is None \
             else self.feature_interactive_model.compute_output_list(fg_list)
 
         return output_list, fgi_output_list
 
-    def _calculate_regional_output(self, data):
+    def calculate_global_classifier_input_vector(self, data):
         wide_list, deep_par_list = self.partition_data_fn(data)
         if len(deep_par_list) == 0:
             output_list = wide_list
         else:
-            fg_output_list, fgi_output_list = self._calculate_regional_fg_output_list(deep_par_list)
+            fg_output_list, fgi_output_list = self._calculate_feature_group_output_list(deep_par_list)
             if fg_output_list is None:
                 all_fg_output_list = fgi_output_list
             else:
                 all_fg_output_list = fg_output_list + fgi_output_list if fgi_output_list else fg_output_list
             output_list = wide_list + all_fg_output_list if len(wide_list) > 0 else all_fg_output_list
 
-        # print("output_list", output_list, len(output_list))
+        # print("[DEBUG] output_list", output_list, len(output_list))
         output = torch.cat(output_list, dim=1)
-        # print("output", output, output.shape)
+        # print("[DEBUG] output", output, output.shape)
         return output
 
     def compute_classification_loss(self, data, label):
-        output = self._calculate_regional_output(data)
-        pred = self.classifier(output)
+        output = self.calculate_global_classifier_input_vector(data)
+        prediction = self.classifier(output)
         if self.loss_name == "CE":
             label = label.flatten().long()
         else:
             # using BCELogitLoss
-            label = label.reshape(-1, 1).type_as(pred)
-        class_loss = self.classifier_criterion(pred, label)
+            label = label.reshape(-1, 1).type_as(prediction)
+        class_loss = self.classifier_criterion(prediction, label)
         return class_loss
 
     def calculate_classifier_correctness(self, data, label):
-        output = self._calculate_regional_output(data)
+        output = self.calculate_global_classifier_input_vector(data)
         pred = self.classifier(output)
         if self.loss_name == "CE":
             # using CrossEntropyLoss

@@ -1,5 +1,5 @@
 from datasets.ppd_dataloader import get_datasets, get_dataloader
-from experiments.kesci_ppd.train_ppd_dann import construct_global_model
+from experiments.kesci_ppd.train_ppd_dann import wire_global_model
 from models.experiment_dann_learner import FederatedDAANLearner
 from utils import get_timestamp
 
@@ -48,7 +48,7 @@ if __name__ == "__main__":
                 lr) + "_v" + str(version) + "_t" + str(timestamp)
             print("[INFO] perform task:{0}".format(task_id))
 
-            daan_model = construct_global_model(pos_class_weight=pos_class_weight)
+            daan_model = wire_global_model(pos_class_weight=pos_class_weight)
             print("[INFO] model created.")
 
             if is_all:

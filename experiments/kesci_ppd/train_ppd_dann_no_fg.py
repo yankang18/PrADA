@@ -1,15 +1,15 @@
 from collections import OrderedDict
 
+import torch
+
 from datasets.ppd_dataloader import get_pdd_dataloaders_ob
-from experiments.kesci_ppd.meta_data import column_name_list, df_group_ind_list, df_cat_mask_list, df_group_index
-from models.classifier import GlobalClassifier, CensusRegionAggregator, IdentityRegionAggregator
+from experiments.kesci_ppd.meta_data import column_name_list, group_ind_list, group_info, embedding_shape_map
+from experiments.kesci_ppd.train_ppd_dann import parse_domain_data
+from models.classifier import GlobalClassifier, IdentityRegionAggregator
 from models.dann_models import GlobalModel, RegionalModel, create_embeddings
-from models.discriminator import CensusRegionDiscriminator
+from models.discriminator import LendingRegionDiscriminator
 from models.experiment_dann_learner import FederatedDAANLearner
 from models.feature_extractor import CensusRegionFeatureExtractorDense
-from models.discriminator import LendingRegionDiscriminator
-import numpy as np
-import torch
 
 
 def store_domain_data(domain_data_dict, domain_data, domain_col_list, is_cat):
@@ -21,32 +21,6 @@ def store_domain_data(domain_data_dict, domain_data, domain_col_list, is_cat):
 
     else:
         domain_data_dict["non_embedding"] = {"tabular_data": domain_data}
-
-
-def parse_domain_data(data, column_name_list, df_group_ind_list, df_cat_mask_list, df_group_index_list):
-    wide_feat_list = []
-    domain_list = []
-    for group_ind, is_cat, group_index in zip(df_group_ind_list, df_cat_mask_list, df_group_index_list):
-        start_index = group_index[0]
-        length = group_index[1]
-        if group_ind == 2:
-            wide_feat_list.append(data[:, start_index:start_index + length])
-        elif group_ind == 1:
-            new_domain = dict()
-            new_domain["embeddings"] = None
-            new_domain["non_embedding"] = None
-            domain_data = data[:, start_index:start_index + length]
-            domain_col_list = column_name_list[start_index:start_index + length]
-            store_domain_data(new_domain, domain_data, domain_col_list, is_cat)
-            domain_list.append(new_domain)
-        else:
-            # print("group_ind", group_ind)
-            assert group_ind == 0
-            domain_dict = domain_list[-1]
-            domain_data = data[:, start_index:start_index + length]
-            domain_col_list = column_name_list[start_index:start_index + length]
-            store_domain_data(domain_dict, domain_data, domain_col_list, is_cat)
-    return wide_feat_list, domain_list
 
 
 def aggregate_domains(domain_list):
@@ -69,9 +43,8 @@ def aggregate_domains(domain_list):
 def partition_data(data):
     wide_feat_list, domain_list = parse_domain_data(data,
                                                     column_name_list,
-                                                    df_group_ind_list,
-                                                    df_cat_mask_list,
-                                                    df_group_index)
+                                                    group_ind_list,
+                                                    group_info)
     agg_domain = aggregate_domains(domain_list)
     return wide_feat_list, [agg_domain]
 
@@ -93,35 +66,8 @@ def create_region_model_wrappers(input_dims_list):
 
 
 def create_embedding_dict():
-    embedding_map = {'UserInfo_13': (3, 3),
-                     'UserInfo_12': (3, 3),
-                     'UserInfo_22': (9, 9),
-                     'UserInfo_17': (2, 2),
-                     'UserInfo_21': (2, 2),
-                     'UserInfo_5': (3, 3),
-                     'UserInfo_3': (9, 9),
-                     'UserInfo_11': (3, 3),
-                     'UserInfo_16': (6, 6),
-                     'UserInfo_1': (9, 9),
-                     'UserInfo_6': (3, 3),
-                     'UserInfo_23': (31, 15),
-                     'UserInfo_9': (4, 4),
-                     'Education_Info3': (3, 3),
-                     'Education_Info5': (2, 2),
-                     'Education_Info1': (2, 2),
-                     'Education_Info7': (2, 2),
-                     'Education_Info6': (6, 6),
-                     'Education_Info8': (7, 7),
-                     'Education_Info2': (7, 7),
-                     'Education_Info4': (6, 6),
-                     'SocialNetwork_2': (3, 3),
-                     'SocialNetwork_7': (3, 3),
-                     'SocialNetwork_12': (3, 3),
-                     'WeblogInfo_19': (8, 8),
-                     'WeblogInfo_21': (5, 5),
-                     'WeblogInfo_20': (45, 15)}
     embedding_meta_dict = dict()
-    for feat_name, emb_shape in embedding_map.items():
+    for feat_name, emb_shape in embedding_shape_map.items():
         embedding_meta_dict[feat_name] = emb_shape
     print(f"embedding_meta_dict: \n {embedding_meta_dict}")
     return create_embeddings(embedding_meta_dict)

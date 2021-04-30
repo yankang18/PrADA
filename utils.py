@@ -1,10 +1,11 @@
 import json
 import os
+from datetime import date
 from datetime import datetime
 
 import numpy as np
 from scipy.stats import ks_2samp
-from sklearn.metrics import roc_auc_score, accuracy_score, precision_recall_fscore_support
+from sklearn.metrics import roc_auc_score, accuracy_score
 
 
 def get_latest_timestamp(timestamped_file_name, folder):
@@ -24,6 +25,10 @@ def get_latest_timestamp(timestamped_file_name, folder):
 
 def get_timestamp():
     return int(datetime.utcnow().timestamp())
+
+
+def get_current_date():
+    return date.today().strftime("%Y%m%d")
 
 
 def save_dann_experiment_result(root, task_id, param_dict, metric_dict, timestamp):
@@ -92,15 +97,15 @@ def test_classification(wrapper, data_loader):
     get_ks = lambda y_pred, y_true: ks_2samp(y_pred[y_true == 1], y_pred[y_true != 1]).statistic
     ks = get_ks(np.array(y_pos_pred_prob_list), np.array(y_real_list))
     print("[DEBUG]: {}/{}".format(correct, n_total))
-    prf_bi = precision_recall_fscore_support(y_real_list, y_pred_list, average='binary')
-    prf_mi = precision_recall_fscore_support(y_real_list, y_pred_list, average='micro')
-    prf_ma = precision_recall_fscore_support(y_real_list, y_pred_list, average='macro')
-    prf_we = precision_recall_fscore_support(y_real_list, y_pred_list, average='weighted')
-    print(f"precision_recall_fscore:\n (binary: {prf_bi})\n (micro: {prf_mi})"
-          f"\n (macro: {prf_ma})\n (weighted: {prf_we}))")
+    # prf_bi = precision_recall_fscore_support(y_real_list, y_pred_list, average='binary')
+    # prf_mi = precision_recall_fscore_support(y_real_list, y_pred_list, average='micro')
+    # prf_ma = precision_recall_fscore_support(y_real_list, y_pred_list, average='macro')
+    # prf_we = precision_recall_fscore_support(y_real_list, y_pred_list, average='weighted')
+    # print(f"precision_recall_fscore:\n (binary: {prf_bi})\n (micro: {prf_mi})"
+    #       f"\n (macro: {prf_ma})\n (weighted: {prf_we}))")
     print("roc_auc_score_0 : ", auc_0)
     print("roc_auc_score_1 : ", auc_1)
-    print(f"ks test : {ks}")
+    print("ks test : ", ks)
     print("accuracy : ", accuracy_score(y_real_list, y_pred_list))
     print("acc : ", acc)
     return acc, auc_1, ks
@@ -141,8 +146,7 @@ def test_discriminator(wrapper, num_regions, source_loader, target_loader):
     target_acc = target_correct / n_target_total
     cat_acc = np.concatenate((source_acc.reshape(1, -1), target_acc.reshape(1, -1)), axis=0)
     acc_sum = np.sum(cat_acc, axis=0)
-    print(f"cat_acc:\n {cat_acc / acc_sum}")
-    cat_acc = entropy(cat_acc / acc_sum)
+    print(f"normalized domain acc:\n {cat_acc / acc_sum}")
 
     # overall_acc = (source_correct + target_correct)
     ave_total_acc = np.mean(total_acc)
@@ -151,7 +155,8 @@ def test_discriminator(wrapper, num_regions, source_loader, target_loader):
     print(f"[DEBUG] {n_source_total} source domain acc: {source_acc}, mean: {ave_source_acc}")
     print(f"[DEBUG] {n_target_total} target domain acc: {target_acc}, mean: {ave_target_acc}")
     print(f"[DEBUG] total domain acc: {total_acc}, mean: {ave_total_acc}")
-    print(f"[DEBUG] domain acc entropy: {cat_acc}")
+    # entropy_domain_acc = entropy(cat_acc / acc_sum)
+    # print(f"[DEBUG] domain acc entropy: {entropy_domain_acc}")
     return (ave_total_acc, ave_source_acc, ave_target_acc), (list(total_acc), list(source_acc), list(target_acc))
 
 

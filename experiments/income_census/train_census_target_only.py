@@ -28,7 +28,7 @@ if __name__ == "__main__":
 
     # perform target training
     target_task_id = "2020530_002"
-    plat_target = FederatedTargetLearner(wrapper=wrapper,
+    plat_target = FederatedTargetLearner(model=wrapper,
                                          target_train_loader=census95_train_loader,
                                          target_val_loader=census95_valid_loader,
                                          patience=150)

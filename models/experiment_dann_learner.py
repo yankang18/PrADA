@@ -248,8 +248,8 @@ class FederatedDAANLearner(object):
                         print(f"[DEBUG] current alpha: {alpha}")
 
                         auc_list.append(tgt_cls_auc)
-                        # score = (2 * tgt_cls_acc * tgt_cls_auc) / (tgt_cls_acc + tgt_cls_auc)
                         score = (tgt_cls_auc + tgt_cls_ks) / 2
+                        # score = (2 * tgt_cls_acc * tgt_cls_auc) / (tgt_cls_acc + tgt_cls_auc)
                         # score = (tgt_cls_auc + tgt_cls_acc) / 2
                         # score = (2 * src_cls_auc * tgt_cls_auc) / (src_cls_auc + tgt_cls_auc)
                         print(f"[DEBUG] *score: {score}")

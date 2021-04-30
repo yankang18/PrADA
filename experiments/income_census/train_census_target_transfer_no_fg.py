@@ -44,7 +44,7 @@ if __name__ == "__main__":
 
     # perform target training
 
-    plat_target = FederatedTargetLearner(wrapper=wrapper,
+    plat_target = FederatedTargetLearner(model=wrapper,
                                          target_train_loader=target_train_loader,
                                          target_val_loader=target_valid_loader,
                                          patience=800,
