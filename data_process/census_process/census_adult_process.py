@@ -1,4 +1,5 @@
 import pandas as pd
+
 from data_process.census_process.census_adult_process_utils import process_census_data, standardize_census_data
 
 ADULT_COLUMNS = [
@@ -21,14 +22,15 @@ RERANGED_ADULT_COLUMNS_NEW = [
 ]
 
 
-def process_census_adult_data(data_path, train=True):
-    adult = pd.read_csv(data_path, names=ADULT_COLUMNS, skipinitialspace=True)
+def process_census_adult_data(data_full_name, output_path, train=True):
+    adult = pd.read_csv(data_full_name, names=ADULT_COLUMNS, skipinitialspace=True)
     print(f"adult shape:{adult.shape}")
 
     columns = adult.columns
     print(f"columns:{columns}")
-    print(adult[columns[0:8]].head())
-    print(adult[columns[8:]].head())
+    # print(adult[columns[0:8]].head())
+    # print(adult[columns[8:]].head())
+    print(adult[['age']])
 
     appendix = "_train" if train else "_test"
     appendix = appendix + ".csv"
@@ -37,21 +39,26 @@ def process_census_adult_data(data_path, train=True):
 
     print(adult.shape)
     print(adult.head())
-    adult.to_csv('../datasets/census_processed/processed_adult' + appendix, index=False)
+    adult.to_csv(output_path + 'processed_adult' + appendix, index=False)
     adult = standardize_census_data(adult)
     print(adult.head())
-    adult.to_csv('../datasets/census_processed/standardized_adult' + appendix, index=False)
+    adult.to_csv(output_path + 'standardized_adult' + appendix, index=False)
 
 
 if __name__ == "__main__":
-    data_path = "../../datasets/census_original/adult.data"
-    process_census_adult_data(data_path, train=True)
+    data_path = "/Users/yankang/Documents/Data/census/"
 
-    data_path = "../../datasets/census_original/adult.test"
-    process_census_adult_data(data_path, train=False)
+    print("[INFO] process adult data")
+    data_full_name = data_path + "adult.data"
+    output_path = data_path + "output/"
+    process_census_adult_data(data_full_name, output_path, train=True)
 
-    income_train_df = pd.read_csv('../../datasets/census_processed/standardized_adult_train.csv', skipinitialspace=True)
-    income_test_df = pd.read_csv('../../datasets/census_processed/standardized_adult_test.csv', skipinitialspace=True)
+    print("[INFO] process adult test")
+    data_full_name = data_path + "adult.test"
+    process_census_adult_data(data_full_name, output_path, train=False)
+
+    income_train_df = pd.read_csv(output_path + 'standardized_adult_train.csv', skipinitialspace=True)
+    income_test_df = pd.read_csv(output_path + 'standardized_adult_test.csv', skipinitialspace=True)
 
     post_grad_train_df = income_train_df[income_train_df['post_graduate'] == 1]
     non_post_grad_train_df = income_train_df[income_train_df['post_graduate'] == 0]
@@ -101,6 +108,3 @@ if __name__ == "__main__":
     #
     # non_asia_adult_test.to_csv('../datasets/census_processed/adult_source_test.csv', index=False)
     # asia_adult_test.to_csv('../datasets/census_processed/adult_target_test.csv', index=False)
-
-
-

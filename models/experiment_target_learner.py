@@ -76,7 +76,9 @@ class FederatedTargetLearner(object):
                     if (batch_idx + 1) % 5 == 0:
                         # if (batch_idx) % 1 == 0:
                         self._change_to_eval_mode()
-                        tgt_cls_acc, tgt_cls_auc, tgt_cls_ks = test_classification(self.model, self.target_val_loader)
+                        tgt_cls_acc, tgt_cls_auc, tgt_cls_ks = test_classification(self.model,
+                                                                                   self.target_val_loader,
+                                                                                   "test target")
                         batch_per_epoch = 100. * batch_idx / len(self.target_train_loader)
                         print(f'[INFO] [{curr_global_epoch}/{global_epochs}]\t [{ep}/{epochs} ({batch_per_epoch:.0f}%)]'
                               f'\t loss:{class_loss}\t val target acc: {tgt_cls_acc:.6f}')
@@ -162,7 +164,7 @@ class FederatedTargetLearner(object):
             optimizer = optim.SGD(self.model.parameters(), lr=lr, momentum=0.99, weight_decay=0.0001)
 
         curr_lr = lr
-        # step_lr = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.95)
+        step_lr = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.95)
         self.model.print_parameters()
 
         loss_list = list()
@@ -183,8 +185,8 @@ class FederatedTargetLearner(object):
             self.model.freeze_bottom(is_freeze=True)
             loss_list += self.train_target_models(top_epochs, optimizer, curr_lr,
                                                   curr_global_epoch=ep, global_epochs=global_epochs)
-            # step_lr.step()
-            # curr_lr = step_lr.get_last_lr()
+            step_lr.step()
+            curr_lr = step_lr.get_last_lr()
             print("[INFO] change learning rate to {0}".format(curr_lr))
 
             if self.stop_training:
@@ -192,29 +194,29 @@ class FederatedTargetLearner(object):
 
         print(f"loss_list:{loss_list}")
 
-    def train_target_as_whole(self, global_epochs, lr, task_id, dann_exp_result=None):
-        self.task_id = task_id
-
-        if dann_exp_result:
-            print("[INFO] apply DANN lr parameters")
-            self.get_weight_constraints(dann_exp_result)
-            optimizer = optim.SGD(self.model.parameters(), lr=lr, momentum=0.9)
-            # optimizer = optim.Adam(self.wrapper.parameters(), lr=lr)
-        else:
-            print("[INFO] Do not apply DANN lr parameters")
-            optimizer = optim.SGD(self.model.parameters(), lr=lr, momentum=0.9, weight_decay=0.01)
-
-        self.patient_count = 0
-        self.stop_training = False
-        self.best_score = -float('inf')
-        self.model.freeze_bottom(is_freeze=True)
-        # self.wrapper.freeze_bottom_aggregators(is_freeze=True)
-        # self.wrapper.freeze_bottom(is_freeze=False, region_idx_list=self.fine_tuning_region_idx_list)
-        # self.wrapper.print_parameters(print_all=True)
-
-        # self.wrapper.freeze_bottom(is_freeze=True, region_idx_list=[0, 1, 3, 5, 6, 8])
-        # self.wrapper.freeze_bottom(is_freeze=True, region_idx_list=[0, 1, 3, 4, 5, 6, 7, 8])
-        # self.wrapper.freeze_bottom_extractors(is_freeze=True)
-        for ep in range(global_epochs):
-            self.train_target_models(epochs=1, optimizer=optimizer, lr=lr,
-                                     curr_global_epoch=ep, global_epochs=global_epochs)
+    # def train_target_as_whole(self, global_epochs, lr, task_id, dann_exp_result=None):
+    #     self.task_id = task_id
+    #
+    #     if dann_exp_result:
+    #         print("[INFO] apply DANN lr parameters")
+    #         self.get_weight_constraints(dann_exp_result)
+    #         optimizer = optim.SGD(self.model.parameters(), lr=lr, momentum=0.9)
+    #         # optimizer = optim.Adam(self.wrapper.parameters(), lr=lr)
+    #     else:
+    #         print("[INFO] Do not apply DANN lr parameters")
+    #         optimizer = optim.SGD(self.model.parameters(), lr=lr, momentum=0.9, weight_decay=0.01)
+    #
+    #     self.patient_count = 0
+    #     self.stop_training = False
+    #     self.best_score = -float('inf')
+    #     self.model.freeze_bottom(is_freeze=True)
+    #     # self.wrapper.freeze_bottom_aggregators(is_freeze=True)
+    #     # self.wrapper.freeze_bottom(is_freeze=False, region_idx_list=self.fine_tuning_region_idx_list)
+    #     # self.wrapper.print_parameters(print_all=True)
+    #
+    #     # self.wrapper.freeze_bottom(is_freeze=True, region_idx_list=[0, 1, 3, 5, 6, 8])
+    #     # self.wrapper.freeze_bottom(is_freeze=True, region_idx_list=[0, 1, 3, 4, 5, 6, 7, 8])
+    #     # self.wrapper.freeze_bottom_extractors(is_freeze=True)
+    #     for ep in range(global_epochs):
+    #         self.train_target_models(epochs=1, optimizer=optimizer, lr=lr,
+    #                                  curr_global_epoch=ep, global_epochs=global_epochs)

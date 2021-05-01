@@ -69,8 +69,8 @@ def load_dann_experiment_result(root, task_id, timestamp=None):
     return dann_exp_result_dict
 
 
-def test_classification(wrapper, data_loader):
-    print("---------- test_classification ----------")
+def test_classification(wrapper, data_loader, tag):
+    print(f"---------- {tag} classification ----------")
     correct = 0
     n_total = 0
     y_pred_list = []

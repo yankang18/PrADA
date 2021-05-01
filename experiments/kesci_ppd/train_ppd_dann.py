@@ -98,8 +98,8 @@ def create_pdd_global_model():
     print("[INFO] embedding_dict", embedding_dict)
 
     input_dims_list = [[15, 24, 15, 6],
-                       [85, 100, 85, 10],
-                       [27, 50, 27, 8],
+                       [85, 110, 85, 10],
+                       [30, 50, 30, 8],
                        [18, 30, 18, 6],
                        [55, 80, 55, 10]]
     # input_dims_list = [[15, 24, 15, 6],
@@ -142,8 +142,8 @@ if __name__ == "__main__":
     src_test_dataset, _ = get_datasets(ds_file_name=source_test_file_name, shuffle=True, split_ratio=split_ratio)
     tgt_test_dataset, _ = get_datasets(ds_file_name=target_test_file_name, shuffle=True, split_ratio=split_ratio)
 
-    batch_size_list = [512]
-    # batch_size_list = [256]
+    # batch_size_list = [128]
+    batch_size_list = [256]
     learning_rate_list = [1.2e-3]
     # learning_rate_list = [1.2e-3]
     # learning_rate_list = [6e-4]

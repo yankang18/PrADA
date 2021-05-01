@@ -8,7 +8,7 @@ from models.experiment_dann_learner import FederatedDAANLearner
 from models.feature_extractor import CensusRegionFeatureExtractorDense
 from data_process.census_process.mapping_resource import embedding_dim_map
 from models.model_config import wire_global_model
-
+from utils import get_timestamp, get_current_date
 
 # def partition_data(data):
 #     # COLUMNS_TO_LOAD = ['age',  # 0
@@ -189,6 +189,8 @@ def create_embedding_dict(embedding_dim_map):
     #                 'race': 5, 'workclass': 9, 'occupation': 15, 'education': 17, 'relationship': 6}
     # feat_emb2dim = {'age_bucket': 8, 'marital_status': 8, 'gender': 8, 'native_country': 8,
     #                 'race': 8, 'workclass': 8, 'occupation': 8, 'education': 8, 'relationship': 8}
+
+    # tag embedding map is used for embedding reuse. features with the same tag use the same embedding.
     tag_embedding_map = dict()
     feat_embedding_dict = dict()
     for feat_name, val in embedding_dim_map.items():
@@ -220,11 +222,11 @@ def create_global_model_model(pos_class_weight=1.0):
     # input_dims_list = [[48, 50, 48, 6],
     #                    [32, 40, 32, 6],
     #                    [32, 40, 32, 6]]
-    input_dims_list = [[28, 40, 20, 5],
-                       [25, 40, 20, 5],
-                       [36, 52, 20, 5],
-                       [27, 40, 20, 5],
-                       [20, 36, 20, 5]]
+    input_dims_list = [[28, 40, 28, 6],
+                       [25, 40, 25, 6],
+                       [36, 52, 36, 8],
+                       [27, 40, 27, 6],
+                       [20, 36, 20, 6]]
     # input_dims_list = [[28, 40, 10],
     #                    [25, 40, 10],
     #                    [46, 60, 10],
@@ -239,13 +241,15 @@ def create_global_model_model(pos_class_weight=1.0):
     #                       pos_class_weight=pos_class_weight, loss_name="BCE")
 
     num_wide_feature = 6
-    using_transform_matrix = True
     using_feature_group = True
+    using_interaction = False
+    using_transform_matrix = False
 
     global_model = wire_global_model(embedding_dict=embedding_dict,
                                      input_dims_list=input_dims_list,
                                      num_wide_feature=num_wide_feature,
                                      using_feature_group=using_feature_group,
+                                     using_interaction=using_interaction,
                                      using_transform_matrix=using_transform_matrix,
                                      partition_data_fn=partition_data,
                                      create_model_group_fn=create_model_group,
@@ -257,16 +261,18 @@ def create_global_model_model(pos_class_weight=1.0):
 if __name__ == "__main__":
     model = create_global_model_model(pos_class_weight=2.0)
 
+    data_dir = "/Users/yankang/Documents/Data/census/output/"
+
     # source_adult_train_file_name = '../../datasets/census_processed/degree_source_train.csv'
     # target_adult_train_file_name = '../../datasets/census_processed/degree_target_train.csv'
     # source_adult_test_file_name = '../../datasets/census_processed/degree_source_test.csv'
     # target_adult_test_file_name = '../../datasets/census_processed/degree_target_test.csv'
     # tag = "DEGREE"
 
-    source_adult_train_file_name = '../../datasets/census_processed/undergrad_census9495_da_train.csv'
-    target_adult_train_file_name = '../../datasets/census_processed/grad_census9495_da_train.csv'
-    source_adult_test_file_name = '../../datasets/census_processed/undergrad_census9495_da_test.csv'
-    target_adult_test_file_name = '../../datasets/census_processed/grad_census9495_da_test.csv'
+    source_adult_train_file_name = data_dir + 'undergrad_census9495_da_train.csv'
+    target_adult_train_file_name = data_dir + 'grad_census9495_da_train.csv'
+    source_adult_test_file_name = data_dir + 'undergrad_census9495_da_test.csv'
+    target_adult_test_file_name = data_dir + 'grad_census9495_da_test.csv'
     tag = "DEGREE"
 
     # source_adult_train_file_name = '../../datasets/census_processed/adult_source_train.csv'
@@ -288,7 +294,7 @@ if __name__ == "__main__":
 
     # date = "20201215"; lr = 8e-4; batch_size = 128; version = 5
     # date = "20201215"; lr = 1e-3; batch_size = 64; version = 5
-    date = "20210418"
+    date = get_current_date()
     lr = 8e-4
     batch_size = 64
     version = 5
@@ -305,9 +311,9 @@ if __name__ == "__main__":
     # census95_valid_loader, census95_test_loader = get_census_95_dataloaders(
     #     ds_file_name=census_95_test_file_name, batch_size=batch_size * 2, split_ratio=0.7)
     source_adult_valid_loader, _ = get_census_adult_dataloaders(
-        ds_file_name=source_adult_test_file_name, batch_size=batch_size * 2, split_ratio=1.0)
+        ds_file_name=source_adult_test_file_name, batch_size=batch_size * 4, split_ratio=1.0)
     target_adult_valid_loader, _ = get_census_adult_dataloaders(
-        ds_file_name=target_adult_test_file_name, batch_size=batch_size * 2, split_ratio=1.0)
+        ds_file_name=target_adult_test_file_name, batch_size=batch_size * 4, split_ratio=1.0)
 
     plat = FederatedDAANLearner(model=model,
                                 source_train_loader=source_adult_train_loader,

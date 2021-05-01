@@ -14,13 +14,13 @@ if __name__ == "__main__":
     # dann_task_id = "20201218_DEGREE_0.008_64_2"
     # dann_task_id = "20201218_DEGREE_0.008_64_2"
     # dann_task_id = "20201218_DEGREE_0.008_64_1"
-    dann_task_id = "20210418_DEGREE_0.0008_64_5"
+    dann_task_id = "20210430_DEGREE_0.0008_64_5"
 
     # Load models
     wrapper = create_global_model_model()
 
     # load pre-trained model
-    load_global_classifier = True
+    load_global_classifier = False
     wrapper.load_model(root=dann_root_folder, task_id=dann_task_id, load_global_classifier=load_global_classifier,
                        timestamp=None)
     # dann_exp_result = load_dann_experiment_result(root=dann_root_folder, task_id=dann_task_id)
@@ -68,8 +68,6 @@ if __name__ == "__main__":
     target_task_id = dann_task_id + "_target_finetune" + appendix
     plat_target.train_target_with_alternating(global_epochs=400, top_epochs=1, bottom_epochs=1, lr=lr,
                                               task_id=target_task_id, dann_exp_result=dann_exp_result)
-    # plat_target.train_target_as_whole(global_epochs=100, lr=4e-4, task_id=target_task_id,
-    #                                   dann_exp_result=dann_exp_result)
 
     print("[DEBUG] Global classifier Model Parameter After train:")
     wrapper.print_parameters()

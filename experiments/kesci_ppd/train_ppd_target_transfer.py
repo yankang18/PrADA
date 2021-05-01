@@ -32,7 +32,7 @@ if __name__ == "__main__":
     # DA: 75.9, 41.33;
     # dann_task_id = '20210331_PDD_pw1.0_bs256_lr0.0015_v0_t1617157138'
 
-    dann_task_id = '20210430_PDD_pw1.0_bs512_lr0.0012_v0_t1619741018'
+    dann_task_id = '20210430_PDD_pw1.0_bs256_lr0.0012_v0_t1619747346'
 
     # Load models
     wrapper = create_pdd_global_model()
@@ -75,8 +75,8 @@ if __name__ == "__main__":
 
     timestamp = get_timestamp()
     version = 1
-    # lr = 5e-4
-    lr = 3e-4
+    lr = 5e-4
+    # lr = 3e-4
     # lr = 8e-5
     date = get_current_date() + "_PDD"
     glr = "ft_glr" if load_global_classifier else "rt_glr"

@@ -228,9 +228,11 @@ class FederatedDAANLearner(object):
                         print("-" * 50)
                         self._change_to_eval_mode()
                         src_cls_acc, src_cls_auc, src_cls_ks = test_classification(self.global_model,
-                                                                                   self.src_val_loader)
+                                                                                   self.src_val_loader,
+                                                                                   "test source")
                         tgt_cls_acc, tgt_cls_auc, tgt_cls_ks = test_classification(self.global_model,
-                                                                                   self.tgt_val_loader)
+                                                                                   self.tgt_val_loader,
+                                                                                   "test target")
                         ave_dom_acc, dom_acc_list = test_discriminator(self.global_model, self.num_regions,
                                                                        self.src_val_loader,
                                                                        self.tgt_val_loader)

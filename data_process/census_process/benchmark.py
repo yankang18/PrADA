@@ -305,7 +305,8 @@ if __name__ == "__main__":
     # target_train_file = 'target_census9495_da_train.csv'
     # target_test_file = 'target_census9495_da_test.csv'
 
-    data_dir = '../../datasets/census_processed/'
+    data_dir = "/Users/yankang/Documents/Data/census/output/"
+
     columns_list = continuous_cols + categorical_cols + [target_col_name]
     print("columns_list:", len(columns_list), columns_list)
 

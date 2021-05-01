@@ -55,6 +55,7 @@ def prepare_models():
     model_list.append(LogisticRegression(max_iter=500, solver="sag"))
     # model_list.append(RandomForestClassifier(n_estimators=100))
     # model_list.append(GradientBoostingClassifier(n_estimators=200))
+    # n_tree_estimators: (100, 200, 300); max_depth: (3, 4, 6)
     n_tree_estimators = 300
     max_depth = 6
     num_leaves = 10

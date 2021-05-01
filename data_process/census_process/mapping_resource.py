@@ -25,7 +25,7 @@ education_map = {
     "Bachelors degree(BA AB BS)": "Bachelors",
     "Masters degree(MA MS MEng MEd MSW MBA)": "Masters",
     "Prof school degree (MD DDS DVM LLB JD)": "Prof-school",
-    "Doctorate degree(PhD EdD)": "Doctorate",
+    "Doctorate degree(PhD EdD)": "Doctorate"
 }
 
 race_map = {
@@ -541,6 +541,7 @@ cate_to_index_map = {
     "income_label": income_label_index
 }
 
+# each element is in the form of: feature_name:{input_dim, embedding_dim, tag}
 embedding_dim_map = {
     "class_worker": (9, 4, "class_worker"),
     "education": (12, 6, "education"),
