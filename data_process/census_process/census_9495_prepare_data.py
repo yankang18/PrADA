@@ -141,6 +141,7 @@ def create_asia_source_target_data(census_df, from_dir, train=True, selected=Tru
 
 def create_degree_source_target_data(p_census, from_dir, to_dir, train=True, selected=None):
     appendix = create_file_appendix(train)
+    print("--- create_degree_source_target_data for {} data --- ".format("train" if train else "test"))
 
     doctorate_census = p_census[p_census['education'] == 11]
     # master_census = p_census[(p_census['education'] == 9) | (p_census['education'] == 10)]
@@ -162,11 +163,12 @@ def create_degree_source_target_data(p_census, from_dir, to_dir, train=True, sel
     doctorate_census = pd.read_csv(from_dir + 'doctorate_census9495' + appendix, skipinitialspace=True)
     master_census = pd.read_csv(from_dir + 'master_census9495' + appendix, skipinitialspace=True)
     undergrad_census = pd.read_csv(from_dir + 'undergrad_census9495' + appendix, skipinitialspace=True)
-    compute_instance_prob(doctorate_census)
-    compute_instance_prob(master_census)
-    compute_instance_prob(undergrad_census)
 
     if selected:
+        compute_instance_prob(doctorate_census)
+        compute_instance_prob(master_census)
+        compute_instance_prob(undergrad_census)
+
         doctor_size = selected["doctor_size"]
         master_size = selected["master_size"]
         undergrad_size = selected["undergrad_size"]
@@ -224,9 +226,10 @@ def create_degree_source_target_data(p_census, from_dir, to_dir, train=True, sel
 
     if train:
         grad_census_values_1 = grad_census_df_1.values[:200]
+        grad_census_values_0 = grad_census_df_0.values[:3800]
     else:
         grad_census_values_1 = grad_census_df_1.values
-    grad_census_values_0 = grad_census_df_0.values
+        grad_census_values_0 = grad_census_df_0.values
 
     print("grad_census_values_1 shape:", grad_census_values_1.shape)
     print("grad_census_values_0 shape:", grad_census_values_0.shape)
@@ -245,8 +248,8 @@ def create_degree_source_target_data(p_census, from_dir, to_dir, train=True, sel
     standardize_census9495_data(grad_census_df_all, continuous_cols)
     standardize_census9495_data(undergrad_census_df_all, continuous_cols)
 
-    print("(final) grad_census_df_all shape:", grad_census_df_all.shape)
-    print("(final) undergrad_census_df_all shape:", undergrad_census_df_all.shape)
+    print("[INFO] (final) grad_census_df_all shape:", grad_census_df_all.shape)
+    print("[INFO] (final) undergrad_census_df_all shape:", undergrad_census_df_all.shape)
 
     grad_file_full_path = from_dir + 'grad_census9495_da' + appendix
     undergrad_file_full_path = from_dir + 'undergrad_census9495_da' + appendix

@@ -14,20 +14,24 @@ if __name__ == "__main__":
     # dann_task_id = "20201218_DEGREE_0.008_64_2"
     # dann_task_id = "20201218_DEGREE_0.008_64_2"
     # dann_task_id = "20201218_DEGREE_0.008_64_1"
-    dann_task_id = "20210430_DEGREE_0.0008_64_5"
+
+    # new
+    # dann_task_id = "20210501_DEGREE_0.0008_64_1"
+    # dann_task_id = "20210501_DEGREE_0.0008_64_5"
+    dann_task_id = '20210504_DEGREE_0.0008_64_2'
 
     # Load models
-    wrapper = create_global_model_model()
+    model = create_global_model_model(pos_class_weight=1.5)
 
     # load pre-trained model
     load_global_classifier = False
-    wrapper.load_model(root=dann_root_folder, task_id=dann_task_id, load_global_classifier=load_global_classifier,
-                       timestamp=None)
+    model.load_model(root=dann_root_folder, task_id=dann_task_id, load_global_classifier=load_global_classifier,
+                     timestamp=None)
     # dann_exp_result = load_dann_experiment_result(root=dann_root_folder, task_id=dann_task_id)
     dann_exp_result = None
 
     print("[DEBUG] Global classifier Model Parameter Before train:")
-    wrapper.print_parameters()
+    model.print_parameters()
 
     # Load data
 
@@ -42,11 +46,15 @@ if __name__ == "__main__":
     # target_adult_train_file_name = '../../datasets/census_processed/adult_target_train.csv'
     # target_adult_test_file_name = '../../datasets/census_processed/adult_target_test.csv'
 
-    target_train_file_name = '../../datasets/census_processed/grad_census9495_da_train.csv'
-    target_test_file_name = '../../datasets/census_processed/grad_census9495_da_test.csv'
+    # target_train_file_name = '../../datasets/census_processed/grad_census9495_da_train.csv'
+    # target_test_file_name = '../../datasets/census_processed/grad_census9495_da_test.csv'
 
-    batch_size = 64; lr = 3e-4;  version = 1
-    # batch_size = 128; lr = 8e-4;  version = 1
+    data_dir = "/Users/yankang/Documents/Data/census/output/"
+    target_train_file_name = data_dir + 'grad_census9495_da_train.csv'
+    target_test_file_name = data_dir + 'grad_census9495_da_test.csv'
+
+    batch_size = 64; lr = 5e-4;  version = 1
+    # batch_size = 64; lr = 8e-4;  version = 1
     print("[INFO] Load train data")
     target_train_loader, _ = get_income_census_dataloaders(
         ds_file_name=target_train_file_name, batch_size=batch_size, split_ratio=1.0)
@@ -57,7 +65,7 @@ if __name__ == "__main__":
 
     # perform target training
 
-    plat_target = FederatedTargetLearner(model=wrapper,
+    plat_target = FederatedTargetLearner(model=model,
                                          target_train_loader=target_train_loader,
                                          target_val_loader=target_valid_loader,
                                          patience=800,
@@ -70,7 +78,7 @@ if __name__ == "__main__":
                                               task_id=target_task_id, dann_exp_result=dann_exp_result)
 
     print("[DEBUG] Global classifier Model Parameter After train:")
-    wrapper.print_parameters()
+    model.print_parameters()
 
-    acc, auc = test_classification(wrapper, target_valid_loader)
+    acc, auc = test_classification(model, target_valid_loader)
     print(f"acc:{acc}, auc:{auc}")

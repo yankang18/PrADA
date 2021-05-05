@@ -1,8 +1,9 @@
 import numpy as np
 import pandas as pd
 from sklearn.utils import shuffle
+
+from data_process.benchmark_utils import run_benchmark
 from datasets.ppd_dataloader import get_selected_columns
-from data_process.cell_process.bechmark import run_benchmark
 
 
 def train_benchmark(samples_train, samples_test):
@@ -13,7 +14,9 @@ def train_benchmark(samples_train, samples_test):
     print(f"train_label shape : {train_label.shape}")
     print(f"test_data shape : {test_data.shape}")
     print(f"test_label shape : {test_label.shape}")
-    run_benchmark(train_data, train_label, test_data, test_label)
+
+    kwargs = {'n_tree_estimators': 300, 'max_depth': 4}
+    run_benchmark(train_data, train_label, test_data, test_label, **kwargs)
 
 
 def train_on_dann(file_dict):
@@ -67,11 +70,24 @@ def train_on_dann(file_dict):
 
 
 if __name__ == "__main__":
-    source_train_file = "PPD_2014_1to9_train.csv"
-    target_train_file = 'PPD_2014_10to12_train.csv'
-    # source_test_file = 'PPD_2014_1to9_test.csv'
-    target_test_file = 'PPD_2014_10to12_test.csv'
-    data_dir = "/Users/yankang/Documents/Data/Data_Open_Analysis_master/Kesci_PPD/PPD_data_v1/"
+    # source_train_file = "PPD_2014_1to9_train.csv"
+    # target_train_file = 'PPD_2014_10to12_train.csv'
+    # # source_test_file = 'PPD_2014_1to9_test.csv'
+    # target_test_file = 'PPD_2014_10to12_test.csv'
+    # data_dir = "/Users/yankang/Documents/Data/Data_Open_Analysis_master/Kesci_PPD/PPD_data_v1/"
+
+    # data_dir = "/Users/yankang/Documents/Data/Data_Open_Analysis_master/Kesci_PPD/PPD_data_output/"
+    timestamp = '1620085151'
+    data_dir = f"/Users/yankang/Documents/Data/Data_Open_Analysis_master/Kesci_PPD/PPD_data_output_{timestamp}/"
+    # source_train_file = "PPD_2014_src_1to9_train.csv"
+    # source_test_file = 'PPD_2014_src_1to9_test.csv'
+    source_train_file = "PPD_2014_src_1to8_train.csv"
+    source_test_file = 'PPD_2014_src_1to8_test.csv'
+    target_train_file = 'PPD_2014_tgt_9_train.csv'
+    target_test_file = 'PPD_2014_tgt_9_test.csv'
+    # target_train_file = 'PPD_2014_tgt_10to11_train.csv'
+    # target_test_file = 'PPD_2014_tgt_10to11_test.csv'
+
     columns_list = None
 
     file_dict = dict()

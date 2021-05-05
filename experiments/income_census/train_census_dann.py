@@ -10,6 +10,7 @@ from data_process.census_process.mapping_resource import embedding_dim_map
 from models.model_config import wire_global_model
 from utils import get_timestamp, get_current_date
 
+
 # def partition_data(data):
 #     # COLUMNS_TO_LOAD = ['age',  # 0
 #     #                    'education_year',  # 1
@@ -172,24 +173,6 @@ def create_model_group(extractor_input_dim):
 
 
 def create_embedding_dict(embedding_dim_map):
-    # feat_org2dim = {'age_bucket': 11, 'marital_status': 7, 'gender': 2, 'native_country': 43, 'relationship': 6,
-    #                 'race': 5, 'workclass': 9, 'occupation': 15, 'education': 17}
-    # feat_emb2dim = {'age_bucket': 11, 'marital_status': 7, 'gender': 2, 'native_country': 43, 'relationship': 6,
-    #                 'race': 5, 'workclass': 9, 'occupation': 15, 'education': 17}
-    # feat_org2dim = {'age_bucket': 11, 'marital_status': 7, 'relationship': 6, 'race': 5, 'workclass': 9,
-    #                 'occupation': 15, 'education': 17}
-    # feat_emb2dim = {'age_bucket': 6, 'marital_status': 5, 'relationship': 4, 'race': 3, 'workclass': 7,
-    #                 'occupation': 8, 'education': 8}
-    # feat_org2dim = {'age_bucket': 11, 'marital_status': 7, 'gender': 2, 'race': 5, 'workclass': 9,
-    #                 'occupation': 15, 'education': 17}
-    # feat_emb2dim = {'age_bucket': 6, 'marital_status': 5, 'gender': 2, 'race': 3, 'workclass': 6,
-    #                 'occupation': 8, 'education': 8}
-
-    # feat_org2dim = {'age_bucket': 11, 'marital_status': 7, 'gender': 2, 'native_country': 43,
-    #                 'race': 5, 'workclass': 9, 'occupation': 15, 'education': 17, 'relationship': 6}
-    # feat_emb2dim = {'age_bucket': 8, 'marital_status': 8, 'gender': 8, 'native_country': 8,
-    #                 'race': 8, 'workclass': 8, 'occupation': 8, 'education': 8, 'relationship': 8}
-
     # tag embedding map is used for embedding reuse. features with the same tag use the same embedding.
     tag_embedding_map = dict()
     feat_embedding_dict = dict()
@@ -297,7 +280,7 @@ if __name__ == "__main__":
     date = get_current_date()
     lr = 8e-4
     batch_size = 64
-    version = 5
+    version = 2
 
     print("[INFO] Load train data")
     source_adult_train_loader, _ = get_census_adult_dataloaders(
@@ -321,7 +304,7 @@ if __name__ == "__main__":
                                 target_train_loader=target_adult_train_loader,
                                 target_val_loader=target_adult_valid_loader,
                                 max_epochs=400,
-                                epoch_patience=10)
+                                epoch_patience=5)
 
     # wrapper.print_global_classifier_param()
     plat.set_model_save_info("census_dann")

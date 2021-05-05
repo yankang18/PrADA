@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from sklearn.utils import shuffle
 
-from data_process.cell_process.bechmark import run_benchmark
+from data_process.benchmark_utils import run_benchmark
 from data_process.census_process.mapping_resource import continuous_cols, categorical_cols, target_col_name
 
 # COLUMNS = ['age',

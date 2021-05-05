@@ -161,7 +161,7 @@ class FederatedTargetLearner(object):
             optimizer = optim.SGD(self.model.parameters(), lr=lr, momentum=0.90)
         else:
             print("[DEBUG] Do not apply DANN lr parameters")
-            optimizer = optim.SGD(self.model.parameters(), lr=lr, momentum=0.99, weight_decay=0.0001)
+            optimizer = optim.SGD(self.model.parameters(), lr=lr, momentum=0.99, weight_decay=0.001)
 
         curr_lr = lr
         step_lr = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.95)
@@ -177,13 +177,13 @@ class FederatedTargetLearner(object):
             print(f"[INFO] ===> global epoch {ep}, start fine-tuning top")
             self.model.freeze_top(is_freeze=False)
             self.model.freeze_bottom(is_freeze=True)
-            loss_list += self.train_target_models(bottom_epochs, optimizer, curr_lr, train_bottom_only=True,
+            loss_list += self.train_target_models(top_epochs, optimizer, curr_lr, train_bottom_only=True,
                                                   curr_global_epoch=ep, global_epochs=global_epochs)
 
             print(f"[INFO] ===> global epoch {ep}, start fine-tuning bottom")
             self.model.freeze_top(is_freeze=False)
             self.model.freeze_bottom(is_freeze=True)
-            loss_list += self.train_target_models(top_epochs, optimizer, curr_lr,
+            loss_list += self.train_target_models(bottom_epochs, optimizer, curr_lr,
                                                   curr_global_epoch=ep, global_epochs=global_epochs)
             step_lr.step()
             curr_lr = step_lr.get_last_lr()

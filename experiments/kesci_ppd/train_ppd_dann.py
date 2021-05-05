@@ -93,11 +93,12 @@ def create_embedding_dict():
 #     return input_int_dims_list
 
 
-def create_pdd_global_model():
+def create_pdd_global_model(pos_class_weight=1.0):
     embedding_dict = create_embedding_dict()
     print("[INFO] embedding_dict", embedding_dict)
 
-    input_dims_list = [[15, 24, 15, 6],
+    input_dims_list = [[31, 40, 31, 8],
+                       [15, 24, 15, 6],
                        [85, 110, 85, 10],
                        [30, 50, 30, 8],
                        [18, 30, 18, 6],
@@ -108,7 +109,7 @@ def create_pdd_global_model():
     #                    [18, 30, 18, 6],
     #                    [55, 80, 55, 10]]
 
-    num_wide_feature = 5
+    num_wide_feature = 6
     # num_wide_feature = 17
     using_feature_group = True
     using_interaction = False
@@ -130,11 +131,42 @@ def create_pdd_global_model():
 if __name__ == "__main__":
 
     exp_dir = "ppd_dann"
-    data_dir = "/Users/yankang/Documents/Data/Data_Open_Analysis_master/Kesci_PPD/PPD_data_v1/"
-    source_train_file_name = data_dir + "PPD_2014_1to9_train.csv"
-    target_train_file_name = data_dir + 'PPD_2014_10to12_train.csv'
-    source_test_file_name = data_dir + 'PPD_2014_1to9_test.csv'
-    target_test_file_name = data_dir + 'PPD_2014_10to12_test.csv'
+
+    # data_dir = "/Users/yankang/Documents/Data/Data_Open_Analysis_master/Kesci_PPD/PPD_data_v1/"
+    # source_train_file_name = data_dir + "PPD_2014_1to9_train.csv"
+    # target_train_file_name = data_dir + 'PPD_2014_10to12_train.csv'
+    # source_test_file_name = data_dir + 'PPD_2014_1to9_test.csv'
+    # target_test_file_name = data_dir + 'PPD_2014_10to12_test.csv'
+
+    # data_dir = "/Users/yankang/Documents/Data/Data_Open_Analysis_master/Kesci_PPD/PPD_data_output/"
+
+    # source_train_file_name = data_dir+"PPD_2014_1to8_train.csv"
+    # target_train_file_name = data_dir+'PPD_2014_10to12_train.csv'
+    # source_test_file_name = data_dir+'PPD_2014_1to8_test.csv'
+    # target_test_file_name = data_dir+'PPD_2014_10to12_test.csv'
+
+    # source_train_file_name = data_dir + "PPD_2014_src_1to8_train.csv"
+    # target_train_file_name = data_dir + 'PPD_2014_tgt_10to11_train.csv'
+    # source_test_file_name = data_dir + 'PPD_2014_src_1to8_test.csv'
+    # target_test_file_name = data_dir + 'PPD_2014_tgt_10to11_test.csv'
+
+    # source_train_file_name = data_dir + "PPD_2014_src_1to9_train.csv"
+    # source_test_file_name = data_dir + 'PPD_2014_src_1to9_test.csv'
+    # source_train_file_name = data_dir + "PPD_2014_src_1to8_train.csv"
+    # source_test_file_name = data_dir + 'PPD_2014_src_1to8_test.csv'
+    # target_train_file_name = data_dir + 'PPD_2014_tgt_9_train.csv'
+    # target_test_file_name = data_dir + 'PPD_2014_tgt_9_test.csv'
+    # target_train_file_name = 'PPD_2014_tgt_10to11_train.csv'
+    # target_test_file_name = 'PPD_2014_tgt_10to11_test.csv'
+
+    timestamp = '1620085151'
+    data_dir = f"/Users/yankang/Documents/Data/Data_Open_Analysis_master/Kesci_PPD/PPD_data_output_{timestamp}/"
+    # source_train_file = "PPD_2014_src_1to9_train.csv"
+    # source_test_file = 'PPD_2014_src_1to9_test.csv'
+    source_train_file_name = data_dir + "PPD_2014_src_1to8_train.csv"
+    source_test_file_name = data_dir + 'PPD_2014_src_1to8_test.csv'
+    target_train_file_name = data_dir + 'PPD_2014_tgt_9_train.csv'
+    target_test_file_name = data_dir + 'PPD_2014_tgt_9_test.csv'
 
     split_ratio = 1.0
     src_train_dataset, _ = get_datasets(ds_file_name=source_train_file_name, shuffle=True, split_ratio=split_ratio)
@@ -165,7 +197,7 @@ if __name__ == "__main__":
                 version) + "_t" + str(timestamp)
             print("[INFO] perform task:{0}".format(task_id))
 
-            global_model = create_pdd_global_model()
+            global_model = create_pdd_global_model(pos_class_weight=1.0)
             print("[INFO] model created.")
 
             src_train_loader = get_dataloader(src_train_dataset, batch_size=bs)
