@@ -279,8 +279,9 @@ if __name__ == "__main__":
     # date = "20201215"; lr = 1e-3; batch_size = 64; version = 5
     date = get_current_date()
     lr = 8e-4
+    # batch_size = 64
     batch_size = 64
-    version = 2
+    timestamp = get_timestamp()
 
     print("[INFO] Load train data")
     source_adult_train_loader, _ = get_census_adult_dataloaders(
@@ -289,10 +290,6 @@ if __name__ == "__main__":
         ds_file_name=target_adult_train_file_name, batch_size=batch_size, split_ratio=1.0)
 
     print("[INFO] Load test data")
-    # census_adult_valid_loader, census_adult_test_loader = get_census_adult_dataloaders(
-    #     ds_file_name=census_adult_test_file_name, batch_size=batch_size * 2, split_ratio=0.7)
-    # census95_valid_loader, census95_test_loader = get_census_95_dataloaders(
-    #     ds_file_name=census_95_test_file_name, batch_size=batch_size * 2, split_ratio=0.7)
     source_adult_valid_loader, _ = get_census_adult_dataloaders(
         ds_file_name=source_adult_test_file_name, batch_size=batch_size * 4, split_ratio=1.0)
     target_adult_valid_loader, _ = get_census_adult_dataloaders(
@@ -304,14 +301,12 @@ if __name__ == "__main__":
                                 target_train_loader=target_adult_train_loader,
                                 target_val_loader=target_adult_valid_loader,
                                 max_epochs=400,
-                                epoch_patience=5)
+                                epoch_patience=3)
 
-    # wrapper.print_global_classifier_param()
     plat.set_model_save_info("census_dann")
-    # plat.set_model_save_info("lending_dann")
 
-    task_id = date + "_" + tag + "_" + str(lr) + "_" + str(batch_size) + "_" + str(version)
-    # 5e-4
+    task_id = date + "_" + tag + "_" + str(lr) + "_" + str(batch_size) + "_" + str(timestamp)
+
     plat.train_dann(epochs=400, lr=lr, task_id=task_id)
 
     model.print_parameters()
