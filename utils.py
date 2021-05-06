@@ -4,6 +4,7 @@ from datetime import date
 from datetime import datetime
 
 import numpy as np
+import pandas as pd
 from scipy.stats import ks_2samp
 from sklearn.metrics import roc_auc_score, accuracy_score
 
@@ -153,3 +154,23 @@ def entropy(predictions):
     epsilon = 1e-6
     H = -predictions * np.log2(predictions + epsilon)
     return H.sum(axis=0)
+
+
+def produce_data_for_lr_shap(model, data_loader, column_name_list, output_file_full_name):
+    """
+    produce data for LR SHAP
+    """
+
+    sample_list = []
+    for data, label in data_loader:
+        feature = model.calculate_global_classifier_input_vector(data).detach().numpy()
+        label = label.numpy().reshape((-1, 1))
+        # print(feature.shape, label.shape)
+        sample = np.concatenate((feature, label), axis=1)
+        sample_list.append(sample)
+    classifier_data = np.concatenate(sample_list, axis=0)
+
+    print("[INFO] global classifier input data with shape:{}".format(classifier_data.shape))
+    df_lr_input = pd.DataFrame(data=classifier_data, columns=column_name_list)
+    df_lr_input.to_csv(output_file_full_name)
+    print(f"[INFO] save lr-data-shap to {output_file_full_name}")
