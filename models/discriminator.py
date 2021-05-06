@@ -63,7 +63,7 @@ class GlobalDiscriminator(nn.Module):
             nn.Linear(in_features=10, out_features=5),
             nn.BatchNorm1d(5),
             activation_fn,
-            nn.Linear(in_features=10, out_features=2),
+            nn.Linear(in_features=5, out_features=2),
         )
 
     def apply_discriminator(self, x):
