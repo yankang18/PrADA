@@ -26,26 +26,6 @@ class GradientReverseFunction(Function):
     #     return grad_output.neg() * ctx.coeff, None
 
 
-# class Discriminator(nn.Module):
-#
-#     def __init__(self, input_dim):
-#         super(Discriminator, self).__init__()
-#         self.discriminator = nn.Sequential(
-#             nn.Linear(in_features=input_dim, out_features=100),
-#             nn.BatchNorm1d(100),
-#             nn.ReLU(),
-#             nn.Linear(in_features=100, out_features=2)
-#         )
-#
-#     def apply_discriminator(self, x):
-#         return self.discriminator(x)
-#
-#     def forward(self, input, alpha):
-#         reversed_input = ReverseLayerF.apply(input, alpha)
-#         x = self.apply_discriminator(reversed_input)
-#         return F.softmax(x, dim=1)
-
-
 class RegionDiscriminator(nn.Module):
 
     def __init__(self, input_dim):
@@ -70,6 +50,29 @@ activation_fn = nn.LeakyReLU()
 
 
 # activation_fn = Mish()
+
+
+class GlobalDiscriminator(nn.Module):
+
+    def __init__(self, input_dim):
+        super(GlobalDiscriminator, self).__init__()
+        self.discriminator = nn.Sequential(
+            nn.utils.spectral_norm(nn.Linear(in_features=input_dim, out_features=10)),
+            nn.BatchNorm1d(10),
+            activation_fn,
+            nn.Linear(in_features=10, out_features=5),
+            nn.BatchNorm1d(5),
+            activation_fn,
+            nn.Linear(in_features=10, out_features=2),
+        )
+
+    def apply_discriminator(self, x):
+        return self.discriminator(x)
+
+    def forward(self, input, alpha):
+        reversed_input = GradientReverseFunction.apply(input, alpha)
+        x = self.apply_discriminator(reversed_input)
+        return x
 
 
 class CensusRegionDiscriminator(nn.Module):
