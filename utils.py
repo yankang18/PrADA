@@ -111,34 +111,23 @@ def test_classification(wrapper, data_loader, tag):
     return acc, auc_1, ks
 
 
-def test_discriminator(wrapper, num_regions, source_loader, target_loader):
+def test_discriminator(model, num_regions, source_loader, target_loader):
     print("---------- test_discriminator ----------")
     source_correct = np.zeros(num_regions)
     target_correct = np.zeros(num_regions)
     n_source_total = 0
     n_target_total = 0
 
-    # for batch_idx, (source_batch, target_batch) in enumerate(zip(source_loader, target_loader)):
-    #     source_data, source_label = source_batch
-    #     target_data, target_label = target_batch
-    #     n_source_total += len(source_label)
-    #     n_target_total += len(target_label)
-    #
-    #     src_corr_lst = wrapper.calculate_domain_discriminator_correctness(source_data, is_source=True)
-    #     tgt_corr_lst = wrapper.calculate_domain_discriminator_correctness(target_data, is_source=False)
-    #     source_correct += np.array(src_corr_lst)
-    #     target_correct += np.array(tgt_corr_lst)
-
     for source_batch in source_loader:
         source_data, source_label = source_batch
         n_source_total += len(source_label)
-        src_corr_lst = wrapper.calculate_domain_discriminator_correctness(source_data, is_source=True)
+        src_corr_lst = model.calculate_domain_discriminator_correctness(source_data, is_source=True)
         source_correct += np.array(src_corr_lst)
 
     for target_batch in target_loader:
         target_data, target_label = target_batch
         n_target_total += len(target_label)
-        tgt_corr_lst = wrapper.calculate_domain_discriminator_correctness(target_data, is_source=False)
+        tgt_corr_lst = model.calculate_domain_discriminator_correctness(target_data, is_source=False)
         target_correct += np.array(tgt_corr_lst)
 
     total_acc = (source_correct + target_correct) / (n_source_total + n_target_total)
