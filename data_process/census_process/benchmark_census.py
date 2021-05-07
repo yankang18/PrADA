@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from sklearn.utils import shuffle
 
-from data_process.benchmark_utils import run_benchmark
+from data_process.benchmark_utils import run_benchmark, save_benchmark_result, find_args_for_best_metric
 from data_process.census_process.mapping_resource import continuous_cols, categorical_cols, target_col_name
 
 # COLUMNS = ['age',
@@ -61,33 +61,31 @@ def train_benchmark(samples_train, samples_test):
     train_data, train_label = samples_train[:, :-1], samples_train[:, -1]
     test_data, test_label = samples_test[:, :-1], samples_test[:, -1]
 
-    print(f"train_data shape : {train_data.shape}")
-    print(f"train_label shape : {train_label.shape}")
-    print(f"test_data shape : {test_data.shape}")
-    print(f"test_label shape : {test_label.shape}")
-    run_benchmark(train_data, train_label, test_data, test_label)
+    print(f"[INFO] train_data shape:{train_data.shape}")
+    print(f"[INFO] train_label shape:{train_label.shape}， {np.sum(train_label)}")
+    print(f"[INFO] test_data shape:{test_data.shape}")
+    print(f"[INFO] test_label shape:{test_label.shape}， {np.sum(test_label)}")
+    n_tree_list = [200, 250, 300, 350, 400]
+    # max_depth_list = [2, 4, 6, 8]
+    max_depth_list = [2, 4]
+    result_list = list()
+    for n_tree in n_tree_list:
+        for max_depth in max_depth_list:
+            kwargs = {'n_tree_estimators': n_tree, 'max_depth': max_depth}
+            result_dict = run_benchmark(train_data, train_label, test_data, test_label, **kwargs)
+            result_list.append((kwargs, result_dict))
+    for result in result_list:
+        print("-" * 100)
+        print("args:", result[0])
+        print("result:", result[1])
 
-    # print(f"train_data shape : {train_data.shape}")
-    # print(f"train_label shape : {train_label.shape}")
-    # print(f"test_data shape : {test_data.shape}")
-    # print(f"test_label shape : {test_label.shape}")
-    # # lr_adult = LogisticRegressionCV(cv=5, random_state=0, max_iter=500)
-    # lr_adult = LogisticRegression(max_iter=500)
-    # # lr_adult = LogisticRegression(max_iter=500)
-    # cls = lr_adult.fit(train_data, train_label)
-    # pred = cls.predict(test_data)
-    # test_label = test_label.astype(float)
-    # # print("pred:", pred, pred.shape, type(pred), sum(pred))
-    # # print("test_label:", test_label, test_label.shape, type(test_label), sum(test_label))
-    # # pred_prob = cls.predict_proba(test_data)
-    # # print("pred_prob shape:", pred_prob.shape)
-    # acc = accuracy_score(pred, test_label)
-    # auc = roc_auc_score(pred, test_label)
-    # res = precision_recall_fscore_support(pred, test_label, average='macro')
-    # print(f"accuracy : {acc}")
-    # print(f"auc : {auc}")
-    # print(f"prf : {res}")
-    # print(f"coef: {cls.coef_}")
+    best_auc, best_arg = find_args_for_best_metric(result_list, model_name='xgb', metric_name='auc')
+
+    file_name = "income_benchmark_result"
+    result_dict = dict()
+    result_dict["income_benchmark_result"] = result_list
+    result_dict['best_result'] = {'xgb': {'best_auc': best_auc, "best_arg": best_arg}}
+    save_benchmark_result(result=result_dict, to_dir="./", file_name=file_name)
 
 
 def train_census_adult():
@@ -212,15 +210,20 @@ def train_on_dann(file_dict, columns=None):
     print(f"target_train shape:{adult_target_train.shape}")
     print(f"target_test shape:{adult_target_test.shape}")
 
-    print("====== train model only on target =======")
     adult_target_train = adult_target_train.values
     adult_target_test = adult_target_test.values
     adult_target_train = shuffle(adult_target_train)
     adult_target_test = shuffle(adult_target_test)
-    train_benchmark(adult_target_train, adult_target_test)
-    print('\n')
-    print('\n')
-    print("====== train model on src+tgt =======")
+
+    # print("=========================================")
+    # print("====== train model only on target =======")
+    # print("=========================================")
+    # train_benchmark(adult_target_train, adult_target_test)
+    # print('\n')
+    # print('\n')
+    print("=========================================")
+    print("====== train model on src + tgt =========")
+    print("=========================================")
     adult_source_train = adult_source_train.values
     adult_all_train = np.concatenate([adult_source_train, adult_target_train], axis=0)
     adult_all_train = shuffle(adult_all_train)
@@ -264,7 +267,6 @@ def train_adult():
 
 
 if __name__ == "__main__":
-
     # prepare_census_95_train_data(num_sample=1000)
     # train_census_adult()
     # train_census_95()
@@ -297,13 +299,13 @@ if __name__ == "__main__":
     # data_dir = '../datasets/census_processed/'
     # columns_list = COLUMNS
 
-    source_train_file = 'undergrad_census9495_da_train.csv'
-    target_train_file = 'grad_census9495_da_train.csv'
-    target_test_file = 'grad_census9495_da_test.csv'
+    # source_train_file = 'undergrad_census9495_da_train.csv'
+    # target_train_file = 'grad_census9495_da_train.csv'
+    # target_test_file = 'grad_census9495_da_test.csv'
 
-    # source_train_file = 'source_census9495_da_train.csv'
-    # target_train_file = 'target_census9495_da_train.csv'
-    # target_test_file = 'target_census9495_da_test.csv'
+    source_train_file = 'undergrad_census9495_da_300_train.csv'
+    target_train_file = 'grad_census9495_da_300_train.csv'
+    target_test_file = 'grad_census9495_da_300_test.csv'
 
     data_dir = "/Users/yankang/Documents/Data/census/output/"
 

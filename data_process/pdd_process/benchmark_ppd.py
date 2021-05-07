@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from sklearn.utils import shuffle
 
-from data_process.benchmark_utils import run_benchmark
+from data_process.benchmark_utils import run_benchmark, save_benchmark_result, find_args_for_best_metric
 from datasets.ppd_dataloader import get_selected_columns
 
 
@@ -15,8 +15,27 @@ def train_benchmark(samples_train, samples_test):
     print(f"test_data shape : {test_data.shape}")
     print(f"test_label shape : {test_label.shape}")
 
-    kwargs = {'n_tree_estimators': 300, 'max_depth': 4}
-    run_benchmark(train_data, train_label, test_data, test_label, **kwargs)
+    n_tree_list = [200, 250, 300, 350, 400]
+    max_depth_list = [2, 4, 6, 8]
+    # max_depth_list = [2, 4]
+    result_list = list()
+    for n_tree in n_tree_list:
+        for max_depth in max_depth_list:
+            kwargs = {'n_tree_estimators': n_tree, 'max_depth': max_depth}
+            result_dict = run_benchmark(train_data, train_label, test_data, test_label, **kwargs)
+            result_list.append((kwargs, result_dict))
+    for result in result_list:
+        print("-" * 100)
+        print("args:", result[0])
+        print("result:", result[1])
+
+    best_auc, best_arg = find_args_for_best_metric(result_list, model_name='xgb', metric_name='auc')
+
+    file_name = "income_benchmark_result"
+    result_dict = dict()
+    result_dict["income_benchmark_result"] = result_list
+    result_dict['best_result'] = {'xgb': {'best_auc': best_auc, "best_arg": {best_arg}}}
+    save_benchmark_result(result=result_dict, to_dir="./", file_name=file_name)
 
 
 def train_on_dann(file_dict):
@@ -29,7 +48,7 @@ def train_on_dann(file_dict):
     tgt_train_data = pd.read_csv(data_dir + target_train_file, skipinitialspace=True)
     tgt_test_data = pd.read_csv(data_dir + target_test_file, skipinitialspace=True)
 
-    train_columns = get_selected_columns(src_train_data, use_all=False)
+    train_columns = get_selected_columns(src_train_data, use_all_features=False)
     print("[INFO] select_columns:", len(train_columns), train_columns)
     src_train_data = src_train_data[train_columns]
     tgt_train_data = tgt_train_data[train_columns]
@@ -50,18 +69,19 @@ def train_on_dann(file_dict):
     print(f"local_target_train_data shape:{local_target_train_data.shape}")
     print(f"local_target_test_data shape:{local_target_test_data.shape}")
 
-    print("====== train model only on local target =======")
-    local_train_data = shuffle(local_target_train_data)
-    local_test_data = shuffle(local_target_test_data)
-    train_benchmark(local_train_data, local_test_data)
-    print('\n')
-    print("====== train model only on target =======")
     tgt_train_data = tgt_train_data.values
     tgt_test_data = tgt_test_data.values
     tgt_train_data = shuffle(tgt_train_data)
     tgt_test_data = shuffle(tgt_test_data)
-    train_benchmark(tgt_train_data, tgt_test_data)
-    print('\n')
+
+    print("====== train model only on local target =======")
+    # local_train_data = shuffle(local_target_train_data)
+    # local_test_data = shuffle(local_target_test_data)
+    # train_benchmark(local_train_data, local_test_data)
+    # print('\n')
+    # print("====== train model only on target =======")
+    # train_benchmark(tgt_train_data, tgt_test_data)
+    # print('\n')
     print("====== train model on src+tgt =======")
     src_train_data = src_train_data.values
     adult_all_train = np.concatenate([src_train_data, tgt_train_data], axis=0)
@@ -79,14 +99,14 @@ if __name__ == "__main__":
     # data_dir = "/Users/yankang/Documents/Data/Data_Open_Analysis_master/Kesci_PPD/PPD_data_output/"
     timestamp = '1620085151'
     data_dir = f"/Users/yankang/Documents/Data/Data_Open_Analysis_master/Kesci_PPD/PPD_data_output_{timestamp}/"
-    # source_train_file = "PPD_2014_src_1to9_train.csv"
-    # source_test_file = 'PPD_2014_src_1to9_test.csv'
-    source_train_file = "PPD_2014_src_1to8_train.csv"
-    source_test_file = 'PPD_2014_src_1to8_test.csv'
-    target_train_file = 'PPD_2014_tgt_9_train.csv'
-    target_test_file = 'PPD_2014_tgt_9_test.csv'
-    # target_train_file = 'PPD_2014_tgt_10to11_train.csv'
-    # target_test_file = 'PPD_2014_tgt_10to11_test.csv'
+    source_train_file = "PPD_2014_src_1to9_train.csv"
+    source_test_file = 'PPD_2014_src_1to9_test.csv'
+    # source_train_file = "PPD_2014_src_1to8_train.csv"
+    # source_test_file = 'PPD_2014_src_1to8_test.csv'
+    # target_train_file = 'PPD_2014_tgt_9_train.csv'
+    # target_test_file = 'PPD_2014_tgt_9_test.csv'
+    target_train_file = 'PPD_2014_tgt_10to11_train.csv'
+    target_test_file = 'PPD_2014_tgt_10to11_test.csv'
 
     columns_list = None
 
