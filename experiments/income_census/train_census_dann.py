@@ -91,7 +91,7 @@ def partition_data(data):
     #                      "social_status": {"union_member", "vet_benefits", "vet_question"}}
     wide_feat = [data[:, 0].reshape(-1, 1),
                  data[:, 1].reshape(-1, 1),
-                 data[:, 2].reshape(-1, 1),
+                 # data[:, 2].reshape(-1, 1),
                  data[:, 3].reshape(-1, 1),
                  data[:, 4].reshape(-1, 1),
                  data[:, 5].reshape(-1, 1)]
@@ -194,36 +194,15 @@ def create_region_model_wrappers(input_dims_list):
 
 
 def create_global_model_model(pos_class_weight=1.0):
-    # embedding_dim = 8
+
     embedding_dict = create_embedding_dict(embedding_dim_map)
-    # input_dims_list = [[16, 24, 16, 8],
-    #                    [28, 40, 28, 8],
-    #                    [23, 36, 23, 8]]
-    # input_dims_list = [[48, 50, 48, 6],
-    #                    [32, 40, 32, 6],
-    #                    [32, 40, 32, 6]]
-    # input_dims_list = [[48, 50, 48, 6],
-    #                    [32, 40, 32, 6],
-    #                    [32, 40, 32, 6]]
     input_dims_list = [[28, 40, 28, 6],
                        [25, 40, 25, 6],
                        [36, 52, 36, 8],
                        [27, 40, 27, 6],
                        [20, 36, 20, 6]]
-    # input_dims_list = [[28, 40, 10],
-    #                    [25, 40, 10],
-    #                    [46, 60, 10],
-    #                    [27, 40, 10],
-    #                    [20, 40, 10]]
-    # input_dim_list = [5 * embedding_dim, 4 * embedding_dim, 4 * embedding_dim]
-    # region_wrapper_list = create_region_model_wrappers(input_dims_list)
-    #
-    # global_input_dim = 6 + len(input_dims_list)
-    # classifier = GlobalClassifier(input_dim=global_input_dim)
-    # wrapper = GlobalModel(classifier, region_wrapper_list, embedding_dict, partition_data,
-    #                       pos_class_weight=pos_class_weight, loss_name="BCE")
 
-    num_wide_feature = 6
+    num_wide_feature = 5
     using_feature_group = True
     using_interaction = False
     using_transform_matrix = False
@@ -242,45 +221,25 @@ def create_global_model_model(pos_class_weight=1.0):
 
 
 if __name__ == "__main__":
-    model = create_global_model_model(pos_class_weight=2.0)
+    model = create_global_model_model(pos_class_weight=1.0)
 
     data_dir = "/Users/yankang/Documents/Data/census/output/"
 
-    # source_adult_train_file_name = '../../datasets/census_processed/degree_source_train.csv'
-    # target_adult_train_file_name = '../../datasets/census_processed/degree_target_train.csv'
-    # source_adult_test_file_name = '../../datasets/census_processed/degree_source_test.csv'
-    # target_adult_test_file_name = '../../datasets/census_processed/degree_target_test.csv'
-    # tag = "DEGREE"
-
-    source_adult_train_file_name = data_dir + 'undergrad_census9495_da_train.csv'
-    target_adult_train_file_name = data_dir + 'grad_census9495_da_train.csv'
-    source_adult_test_file_name = data_dir + 'undergrad_census9495_da_test.csv'
-    target_adult_test_file_name = data_dir + 'grad_census9495_da_test.csv'
+    # source_adult_train_file_name = data_dir + 'undergrad_census9495_da_train.csv'
+    # target_adult_train_file_name = data_dir + 'grad_census9495_da_train.csv'
+    # source_adult_test_file_name = data_dir + 'undergrad_census9495_da_test.csv'
+    # target_adult_test_file_name = data_dir + 'grad_census9495_da_test.csv'
+    source_adult_train_file_name = data_dir + 'undergrad_census9495_da_300_train.csv'
+    target_adult_train_file_name = data_dir + 'grad_census9495_da_300_train.csv'
+    source_adult_test_file_name = data_dir + 'undergrad_census9495_da_300_test.csv'
+    target_adult_test_file_name = data_dir + 'grad_census9495_da_300_test.csv'
     tag = "DEGREE"
 
-    # source_adult_train_file_name = '../../datasets/census_processed/adult_source_train.csv'
-    # target_adult_train_file_name = '../../datasets/census_processed/adult_target_train.csv'
-    # source_adult_test_file_name = '../../datasets/census_processed/adult_source_test.csv'
-    # target_adult_test_file_name = '../../datasets/census_processed/adult_target_test.csv'
-    # tag = "ASIA"
-
-    # target_adult_train_file_name = '../../datasets/census_processed/adult_target_train.csv'
-    # source_adult_train_file_name = '../../datasets/census_processed/adult_source_train.csv'
-    # target_adult_test_file_name = '../../datasets/census_processed/adult_target_test.csv'
-    # source_adult_test_file_name = '../../datasets/census_processed/adult_source_test.csv'
-
-    # source_adult_train_file_name = '../../datasets/census_processed/standardized_adult.csv'
-    # target_adult_train_file_name = '../../datasets/census_processed/sampled_standardized_census95_train.csv'
-    # source_adult_test_file_name = '../../datasets/census_processed/standardized_adult_test.csv'
-    # target_adult_test_file_name = '../../datasets/census_processed/sampled_standardized_census95_test.csv'
-    # target_adult_test_file_name = '../../datasets/census_processed/standardized_census95_test.csv'
-
-    # date = "20201215"; lr = 8e-4; batch_size = 128; version = 5
-    # date = "20201215"; lr = 1e-3; batch_size = 64; version = 5
     date = get_current_date()
-    lr = 8e-4
-    # batch_size = 64
+    lr = 5e-4
+    # batch_size = 128
     batch_size = 64
+    apply_global_domain_adaption = True
     timestamp = get_timestamp()
 
     print("[INFO] Load train data")
@@ -307,6 +266,10 @@ if __name__ == "__main__":
 
     task_id = date + "_" + tag + "_" + str(lr) + "_" + str(batch_size) + "_" + str(timestamp)
 
-    plat.train_dann(epochs=400, lr=lr, task_id=task_id)
+    plat.train_dann(epochs=400,
+                    lr=lr,
+                    task_id=task_id,
+                    metric=('acc', 'auc'),
+                    apply_global_domain_adaption=apply_global_domain_adaption)
 
     model.print_parameters()
