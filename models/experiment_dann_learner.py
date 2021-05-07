@@ -176,13 +176,13 @@ class FederatedDAANLearner(object):
         print(f"[DEBUG] current epoch patience ratio:{epoch_patience_ratio:.1f}%")
         return epoch_patience_count
 
-    def train_dann(self, epochs, lr, task_id):
+    def train_dann(self, epochs, lr, task_id, metric=('ks', 'auc'), apply_global_domain_adaption=False):
         self._check_exists()
 
         src_train_iter = ForeverDataIterator(self.src_train_loader)
         tgt_train_iter = ForeverDataIterator(self.tgt_train_loader)
 
-        optimizer = optim.SGD(self.global_model.parameters(), lr=lr, momentum=0.99, weight_decay=0.0001)
+        optimizer = optim.SGD(self.global_model.parameters(), lr=lr, momentum=0.99, weight_decay=0.001)
         # optimizer = optim.SGD(self.wrapper.parameters(), lr=lr, momentum=0.9, weight_decay=0.001)
 
         num_batches_per_epoch = len(src_train_iter)
@@ -211,6 +211,7 @@ class FederatedDAANLearner(object):
 
                 kwargs = dict()
                 kwargs["alpha"] = alpha
+                kwargs["apply_global_domain_adaption"] = apply_global_domain_adaption
                 total_loss = self.global_model.compute_total_loss(source_data,
                                                                   target_data,
                                                                   source_label,
@@ -249,16 +250,17 @@ class FederatedDAANLearner(object):
                         print(f"[DEBUG] current lr: {curr_lr}")
                         print(f"[DEBUG] current alpha: {alpha}")
 
+                        metric_dict = {'acc': src_cls_acc, 'auc': src_cls_auc, 'ks': src_cls_ks}
+                        # metric_dict = {'acc': tgt_cls_acc, 'auc': tgt_cls_auc, 'ks': tgt_cls_ks}
                         auc_list.append(tgt_cls_auc)
-                        score = (tgt_cls_auc + tgt_cls_ks) / 2
-                        # score = (2 * tgt_cls_acc * tgt_cls_auc) / (tgt_cls_acc + tgt_cls_auc)
-                        # score = (tgt_cls_auc + tgt_cls_acc) / 2
-                        # score = (2 * src_cls_auc * tgt_cls_auc) / (src_cls_auc + tgt_cls_auc)
+                        score_list = [metric_dict[metric_name] for metric_name in metric]
+                        score = sum(score_list) / len(score_list)
                         print(f"[DEBUG] *score: {score}")
                         if score > self.best_score:
                             self.best_score = score
-                            print(f"best score:{self.best_score} with target acc:{tgt_cls_acc} "
-                                  f", target auc:{tgt_cls_auc}, target ks:{tgt_cls_ks}")
+                            print(f"[INFO] best score:{self.best_score}")
+                            print(f"[INFO] SOURCE: acc:{src_cls_acc}, auc:{src_cls_auc}, ks:{src_cls_ks}")
+                            print(f"[INFO] TARGET: acc:{tgt_cls_acc}, auc:{tgt_cls_auc}, ks:{tgt_cls_ks}")
                             param_dict = self.global_model.get_global_classifier_parameters()
                             metric_dict = dict()
                             metric_dict["source_cls_acc"] = src_cls_acc
