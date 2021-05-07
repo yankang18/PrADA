@@ -322,9 +322,8 @@ class InteractionModel(object):
         tgt_intr_feat_list = self.int_feat_computer.build_fit(tgt_fg_repr_list)
 
         total_domain_loss = torch.tensor(0.)
-        output_list = []
-        # for src_feat, tgt_feat, aggregator, discriminator in zip(src_fg_repr_list, tgt_fg_repr_list,
-        #                                                          self.aggregator_list, self.discriminator_list):
+        src_output_list = list()
+        tgt_output_list = list()
         for src_feat, tgt_feat, aggregator, discriminator in zip(src_intr_feat_list, tgt_intr_feat_list,
                                                                  self.aggregator_list, self.discriminator_list):
             domain_feat = torch.cat((src_feat, tgt_feat), dim=0)
@@ -333,14 +332,16 @@ class InteractionModel(object):
             domain_feat = domain_feat[perm]
             domain_labels = domain_labels[perm]
 
-            output = aggregator(src_feat)
+            src_output = aggregator(src_feat)
+            tgt_output = aggregator(tgt_feat)
             domain_output = discriminator(domain_feat, alpha)
             domain_loss = self.discriminator_criterion(domain_output, domain_labels)
 
-            output_list.append(output)
+            src_output_list.append(src_output)
+            tgt_output_list.append(tgt_output)
             total_domain_loss += domain_loss
 
-        return total_domain_loss, output_list
+        return total_domain_loss, src_output_list, tgt_output_list
 
     def calculate_domain_discriminator_correctness(self, fg_list, is_source=True):
         fg_repr_list = self._compute_fg_repr_list(fg_list)
