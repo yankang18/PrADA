@@ -489,6 +489,7 @@ education_value_map = {
 }
 
 continuous_cols = ["age", "gender", "education_year", "capital_gain", "capital_loss", "stock_dividends"]
+# continuous_cols = ["age", "gender", "capital_gain", "capital_loss", "stock_dividends"]
 categorical_cols = ["class_worker", "major_ind_code", "major_occ_code", "unemp_reason", "full_or_part_emp",
                     "own_or_self",
                     "education", "race", "age_index", "gender_index", "marital_stat", "union_member", "vet_benefits",
@@ -581,7 +582,7 @@ if __name__ == "__main__":
         num_values = len(set(val.values()))
         print(key, num_values)
 
-    print("#"*10)
+    print("#" * 10)
     for key, val in feature_group_map.items():
         group_emb_dim = 0
         for feat in val:
