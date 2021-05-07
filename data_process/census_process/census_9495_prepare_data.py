@@ -1,12 +1,12 @@
 import numpy as np
 import pandas as pd
+from sklearn.utils import shuffle
 
 from data_process.census_process.census_9495_process_utils import consistentize_census9495_columns, \
     numericalize_census9495_data, \
-    standardize_census9495_data, assign_native_country_identifier
+    standardize_census_data, assign_native_country_identifier
 from data_process.census_process.mapping_resource import cate_to_index_map, continuous_cols, categorical_cols, \
     target_col_name
-from sklearn.utils import shuffle
 
 # CENSUS_COLUMNS = ["age", "class_worker", "det_ind_code", "det_occ_code", "education",
 #                   "wage_per_hour", "hs_college", "marital_status", "major_ind_code", "occupation",
@@ -127,8 +127,8 @@ def create_asia_source_target_data(census_df, from_dir, train=True, selected=Tru
     print("source_census_df shape:", source_census_df.shape,
           source_census_df[source_census_df[target_col_name] == 1].shape)
 
-    standardize_census9495_data(target_census_df, continuous_cols)
-    standardize_census9495_data(source_census_df, continuous_cols)
+    standardize_census_data(target_census_df, continuous_cols)
+    standardize_census_data(source_census_df, continuous_cols)
 
     target_file_full_path = from_dir + 'target_census9495_da' + appendix
     source_file_full_path = from_dir + 'source_census9495_da' + appendix
@@ -139,7 +139,8 @@ def create_asia_source_target_data(census_df, from_dir, train=True, selected=Tru
     print(f"[INFO] saved source data to {source_file_full_path}")
 
 
-def create_degree_source_target_data(p_census, from_dir, to_dir, train=True, selected=None):
+def create_degree_source_target_data(p_census, from_dir, to_dir, train=True, selected=None,
+                                     grad_train_scaler=None, undergrad_train_scaler=None):
     appendix = create_file_appendix(train)
     print("--- create_degree_source_target_data for {} data --- ".format("train" if train else "test"))
 
@@ -224,9 +225,11 @@ def create_degree_source_target_data(p_census, from_dir, to_dir, train=True, sel
     print("(orig) undergrad_census_df_1 shape:", undergrad_census_df_1.shape)
     print("(orig) undergrad_census_df_0 shape:", undergrad_census_df_0.shape)
 
+    num_pos = 300
+    num_neg = 4000 - num_pos
     if train:
-        grad_census_values_1 = grad_census_df_1.values[:200]
-        grad_census_values_0 = grad_census_df_0.values[:3800]
+        grad_census_values_1 = grad_census_df_1.values[:num_pos]
+        grad_census_values_0 = grad_census_df_0.values[:num_neg]
     else:
         grad_census_values_1 = grad_census_df_1.values
         grad_census_values_0 = grad_census_df_0.values
@@ -245,19 +248,21 @@ def create_degree_source_target_data(p_census, from_dir, to_dir, train=True, sel
 
     undergrad_census_df_all = pd.DataFrame(data=undergrad_census_values_all, columns=columns)
 
-    standardize_census9495_data(grad_census_df_all, continuous_cols)
-    standardize_census9495_data(undergrad_census_df_all, continuous_cols)
+    _, grad_train_scaler = standardize_census_data(grad_census_df_all, continuous_cols, grad_train_scaler)
+    _, udgrad_train_scaler = standardize_census_data(undergrad_census_df_all, continuous_cols, undergrad_train_scaler)
 
     print("[INFO] (final) grad_census_df_all shape:", grad_census_df_all.shape)
     print("[INFO] (final) undergrad_census_df_all shape:", undergrad_census_df_all.shape)
 
-    grad_file_full_path = from_dir + 'grad_census9495_da' + appendix
-    undergrad_file_full_path = from_dir + 'undergrad_census9495_da' + appendix
+    # save data
+    grad_file_full_path = from_dir + 'grad_census9495_da_' + str(num_pos) + appendix
+    undergrad_file_full_path = from_dir + 'undergrad_census9495_da_' + str(num_pos) + appendix
     grad_census_df_all.to_csv(grad_file_full_path, header=True, index=False)
     undergrad_census_df_all.to_csv(undergrad_file_full_path, header=True, index=False)
-
     print(f"[INFO] saved grad data to {grad_file_full_path}")
     print(f"[INFO] saved undergrad data to {undergrad_file_full_path}")
+
+    return grad_train_scaler, udgrad_train_scaler
 
 
 if __name__ == "__main__":
@@ -279,11 +284,19 @@ if __name__ == "__main__":
     if create_degree_data:
         print("[INFO] ------ create Degree data ------")
         print("[INFO] ------ create Degree train data ------")
-        create_degree_source_target_data(train_df, from_dir=output_path, to_dir=output_path,
-                                         train=True, selected=train_selected)
+        grad_train_scaler, udgrad_train_scaler = create_degree_source_target_data(train_df,
+                                                                                  from_dir=output_path,
+                                                                                  to_dir=output_path,
+                                                                                  train=True,
+                                                                                  selected=train_selected)
         print("[INFO] ------ create Degree test data ------")
-        create_degree_source_target_data(test_df, from_dir=output_path, to_dir=output_path,
-                                         train=False, selected=test_selected)
+        create_degree_source_target_data(test_df,
+                                         from_dir=output_path,
+                                         to_dir=output_path,
+                                         train=False,
+                                         selected=test_selected,
+                                         grad_train_scaler=grad_train_scaler,
+                                         undergrad_train_scaler=udgrad_train_scaler)
     else:
         print("[INFO] ------ create Asia data ------")
         print("[INFO] ------ create Asia train data ------")

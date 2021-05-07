@@ -2,13 +2,13 @@ import numpy as np
 import pandas as pd
 from sklearn import preprocessing
 
-from data_process.census_process.mapping_resource import education_value_map, workclass_map, education_map, marital_status_map, occupation_map, race_map, country_map, \
+from data_process.census_process.mapping_resource import education_value_map, workclass_map, education_map, \
+    marital_status_map, occupation_map, race_map, country_map, \
     census_income_label
 from data_process.census_process.utils import bucketized_age
 
 
 def assign_native_country_identifier(country):
-
     # asian_country = ["Vietnam", "Philippines", "China", "Taiwan", "South-Korea", "India",
     #                  "Hong-Kong", "Japan", "Thailand", "Laos", "Cambodia"]
     asian_country = [4, 5]
@@ -46,16 +46,16 @@ def numericalize_census9495_data(data_frame, to_index_map):
     return data_frame
 
 
-continuous_cols = ["age", "education_year", "capital_gain", "capital_loss"]
+global_scaler = None
 
 
-def standardize_census9495_data(data_frame, cols_to_standardize):
+def standardize_census_data(data_frame, cols_to_standardize, train_scaler=None):
     feat = data_frame[cols_to_standardize].values
-    scaler = preprocessing.StandardScaler()
+    scaler = preprocessing.StandardScaler() if train_scaler is None else train_scaler
     s_feat = scaler.fit_transform(feat)  # axis=0 for column-wise
     for idx in range(len(cols_to_standardize)):
         data_frame[cols_to_standardize[idx]] = s_feat[:, idx]
-    return data_frame
+    return data_frame, scaler
 
 
 def split_data_based_on_year(data):
