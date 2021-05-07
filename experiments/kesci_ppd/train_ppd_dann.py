@@ -97,12 +97,14 @@ def create_pdd_global_model(pos_class_weight=1.0):
     embedding_dict = create_embedding_dict()
     print("[INFO] embedding_dict", embedding_dict)
 
-    input_dims_list = [[31, 40, 31, 8],
-                       [15, 24, 15, 6],
-                       [85, 110, 85, 10],
-                       [30, 50, 30, 8],
-                       [18, 30, 18, 6],
-                       [55, 80, 55, 10]]
+    input_dims_list = [
+        # [31, 40, 31, 8],
+        [15, 24, 15, 6],
+        [85, 110, 85, 10],
+        [30, 50, 30, 8],
+        [18, 30, 18, 6],
+        [55, 80, 55, 10]
+    ]
     # input_dims_list = [[15, 24, 15, 6],
     #                    [85, 100, 85, 10],
     #                    [27, 50, 27, 8],
@@ -123,7 +125,7 @@ def create_pdd_global_model(pos_class_weight=1.0):
                                      using_transform_matrix=using_transform_matrix,
                                      partition_data_fn=partition_data,
                                      create_model_group_fn=create_model_group,
-                                     pos_class_weight=1.0)
+                                     pos_class_weight=pos_class_weight)
 
     return global_model
 
@@ -163,10 +165,11 @@ if __name__ == "__main__":
     data_dir = f"/Users/yankang/Documents/Data/Data_Open_Analysis_master/Kesci_PPD/PPD_data_output_{timestamp}/"
     # source_train_file = "PPD_2014_src_1to9_train.csv"
     # source_test_file = 'PPD_2014_src_1to9_test.csv'
-    source_train_file_name = data_dir + "PPD_2014_src_1to8_train.csv"
-    source_test_file_name = data_dir + 'PPD_2014_src_1to8_test.csv'
-    target_train_file_name = data_dir + 'PPD_2014_tgt_9_train.csv'
-    target_test_file_name = data_dir + 'PPD_2014_tgt_9_test.csv'
+
+    source_train_file_name = data_dir + "PPD_2014_src_1to9_train.csv"
+    source_test_file_name = data_dir + 'PPD_2014_src_1to9_test.csv'
+    target_train_file_name = data_dir + 'PPD_2014_tgt_10to11_train.csv'
+    target_test_file_name = data_dir + 'PPD_2014_tgt_10to11_test.csv'
 
     split_ratio = 1.0
     src_train_dataset, _ = get_datasets(ds_file_name=source_train_file_name, shuffle=True, split_ratio=split_ratio)
@@ -174,6 +177,7 @@ if __name__ == "__main__":
     src_test_dataset, _ = get_datasets(ds_file_name=source_test_file_name, shuffle=True, split_ratio=split_ratio)
     tgt_test_dataset, _ = get_datasets(ds_file_name=target_test_file_name, shuffle=True, split_ratio=split_ratio)
 
+    apply_global_domain_adaption = False
     # batch_size_list = [128]
     batch_size_list = [256]
     learning_rate_list = [1.2e-3]
@@ -204,8 +208,8 @@ if __name__ == "__main__":
             tgt_train_loader = get_dataloader(tgt_train_dataset, batch_size=bs)
             print("[INFO] train data loaded.")
 
-            src_test_loader = get_dataloader(src_test_dataset, batch_size=bs * 2)
-            tgt_test_loader = get_dataloader(tgt_test_dataset, batch_size=bs * 2)
+            src_test_loader = get_dataloader(src_test_dataset, batch_size=bs * 4)
+            tgt_test_loader = get_dataloader(tgt_test_dataset, batch_size=bs * 4)
             print("[INFO] test data loaded.")
 
             plat = FederatedDAANLearner(model=global_model,
@@ -216,6 +220,10 @@ if __name__ == "__main__":
                                         max_epochs=400,
                                         epoch_patience=10)
             plat.set_model_save_info(exp_dir)
-            plat.train_dann(epochs=120, lr=lr, task_id=task_id)
+            plat.train_dann(epochs=120,
+                            lr=lr,
+                            task_id=task_id,
+                            metric=('ks', 'auc'),
+                            apply_global_domain_adaption=apply_global_domain_adaption)
 
             global_model.print_parameters()

@@ -375,7 +375,7 @@ column_name_list = ['UserInfo_14',
 #               (125, (12, False), (3, True)),
 #               (140, (30, False), (3, True))]
 group_info = [(0, (6, False)),
-              (6, (11, True)),
+              # (6, (11, True)),
               (17, (15, False)),
               (32, (85, False)),
               (117, (8, True)),

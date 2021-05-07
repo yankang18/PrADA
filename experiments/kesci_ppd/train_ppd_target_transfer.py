@@ -33,7 +33,11 @@ if __name__ == "__main__":
     # dann_task_id = '20210331_PDD_pw1.0_bs256_lr0.0015_v0_t1617157138'
 
     # using new data, DA: 94.28, 76.53, 41.99
-    dann_task_id = '20210501_PDD_pw1.0_bs512_lr0.001_v0_t1619854012'
+    # dann_task_id = '20210501_PDD_pw1.0_bs512_lr0.001_v0_t1619854012'
+
+    # acc:0.9401055889313672 , target auc:0.7478277836506655, target ks:0.3921640701701516
+    # transfer 0.9429739017367883, auc:0.7472808537519279, ks:0.3939208930721524
+    dann_task_id = '20210506_PDD_pw1.0_bs256_lr0.0012_v0_t1620275086'
 
     # Load models
     wrapper = create_pdd_global_model()
