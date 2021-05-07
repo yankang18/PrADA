@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from models.model_utils import init_weights
+
 
 class Mish(nn.Module):
     def __init__(self):
@@ -13,6 +15,8 @@ class Mish(nn.Module):
 
 
 activation_fn = nn.LeakyReLU()
+
+
 # activation_fn = Mish()
 
 
@@ -83,6 +87,8 @@ class CensusRegionFeatureExtractorDense(nn.Module):
             )
         else:
             raise RuntimeError(f"Currently does not support input_dims of layers {input_dims}")
+
+        # self.extractor.apply(init_weights)
 
     def forward(self, x):
         x = self.extractor(x)

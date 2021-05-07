@@ -1,5 +1,6 @@
 from models.classifier import GlobalClassifier
 from models.dann_models import GlobalModel, RegionalModel
+from models.discriminator import GlobalDiscriminator, CensusRegionDiscriminator
 from models.interaction_models import initialize_transform_matrix_dict, AttentiveFeatureComputer, InteractionModel
 
 
@@ -95,11 +96,17 @@ def wire_global_model(embedding_dict,
         interaction_model = create_interaction_model(input_dims_list, create_model_group_fn, using_transform_matrix)
         interactive_group_num = interaction_model.get_num_feature_groups()
 
+    global_discriminator_dim = len(region_model_list) + interactive_group_num
     global_input_dim = num_wide_feature + len(region_model_list) + interactive_group_num
+
     print(f"[INFO] global_input_dim length:{global_input_dim}")
-    classifier = GlobalClassifier(input_dim=global_input_dim)
-    global_model = GlobalModel(classifier, region_model_list, embedding_dict, partition_data_fn,
+    print(f"[INFO] global_discriminator_dim length:{global_discriminator_dim}")
+
+    global_classifier = GlobalClassifier(input_dim=global_input_dim)
+    global_discriminator = GlobalDiscriminator(input_dim=global_discriminator_dim)
+    global_model = GlobalModel(global_classifier, region_model_list, embedding_dict, partition_data_fn,
                                feature_interactive_model=interaction_model,
                                pos_class_weight=pos_class_weight,
-                               loss_name="BCE")
+                               loss_name="BCE",
+                               discriminator=global_discriminator)
     return global_model

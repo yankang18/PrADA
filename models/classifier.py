@@ -1,13 +1,7 @@
-import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-
-def init_weights(m):
-    if type(m) == nn.Linear:
-        nn.init.kaiming_normal_(m.weight)
-        # nn.init.xavier_uniform(m.weight)
-        # m.bias.data.fill_(0.01)
+from models.model_utils import init_weights
 
 
 class TransformMatrix(nn.Module):
@@ -68,7 +62,7 @@ activation_fn = nn.LeakyReLU()
 class CensusRegionAggregator(nn.Module):
     def __init__(self, input_dim):
         super(CensusRegionAggregator, self).__init__()
-        self.classifier = nn.Sequential(
+        self.aggregator = nn.Sequential(
             nn.Linear(in_features=input_dim, out_features=1),
             # activation_fn
             # nn.Sigmoid()
@@ -76,8 +70,10 @@ class CensusRegionAggregator(nn.Module):
             # nn.Tanh()
         )
 
+        # self.aggregator.apply(init_weights)
+
     def forward(self, x):
-        return self.classifier(x)
+        return self.aggregator(x)
 
 
 class IdentityRegionAggregator(nn.Module):

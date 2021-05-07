@@ -70,26 +70,22 @@ def load_dann_experiment_result(root, task_id, timestamp=None):
     return dann_exp_result_dict
 
 
-def test_classification(wrapper, data_loader, tag):
+def test_classification(model, data_loader, tag):
     print(f"---------- {tag} classification ----------")
     correct = 0
     n_total = 0
     y_pred_list = []
     y_real_list = []
     y_pos_pred_prob_list = []
-    wrapper.change_to_eval_mode()
+    model.change_to_eval_mode()
     for batch_idx, (data, label) in enumerate(data_loader):
         label = label.flatten()
         n_total += len(label)
-        batch_corr, y_pred, pos_y_prob = wrapper.calculate_classifier_correctness(data, label)
+        batch_corr, y_pred, pos_y_prob = model.calculate_classifier_correctness(data, label)
         correct += batch_corr
         y_real_list += label.tolist()
         y_pred_list += y_pred.tolist()
         y_pos_pred_prob_list += pos_y_prob.tolist()
-
-        # print("y_pred_list:", y_real_list)
-        # print("y_pred_list:", y_pred_list)
-        # print("y_pos_pred_prob_list:", y_pos_pred_prob_list)
 
     acc = correct / n_total
     auc_0 = roc_auc_score(y_real_list, y_pred_list)
@@ -172,5 +168,6 @@ def produce_data_for_lr_shap(model, data_loader, column_name_list, output_file_f
 
     print("[INFO] global classifier input data with shape:{}".format(classifier_data.shape))
     df_lr_input = pd.DataFrame(data=classifier_data, columns=column_name_list)
-    df_lr_input.to_csv(output_file_full_name)
+    print(df_lr_input.head(5))
+    df_lr_input.to_csv(output_file_full_name, index=False)
     print(f"[INFO] save lr-data-shap to {output_file_full_name}")

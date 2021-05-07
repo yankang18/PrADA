@@ -40,7 +40,9 @@ def compute_feature_crossing(feature_cross_model, feature_group_list):
 
 class GlobalModel(object):
     def __init__(self, classifier, regional_model_list, embedding_dict, partition_data_fn, beta=1.0,
-                 pos_class_weight=1.0, loss_name="CE", feature_cross_model=None, feature_interactive_model=None):
+                 pos_class_weight=1.0, loss_name="CE", feature_cross_model=None, feature_interactive_model=None,
+                 discriminator=None):
+        self.global_discriminator = discriminator
         self.classifier = classifier
         self.regional_model_list = list() if regional_model_list is None else regional_model_list
         self.feature_cross_model = feature_cross_model
@@ -55,6 +57,7 @@ class GlobalModel(object):
             raise RuntimeError(f"Does not support loss:{loss_name}")
         self.beta = beta
         self.partition_data_fn = partition_data_fn
+        self.discriminator_criterion = nn.CrossEntropyLoss()
 
     def print_parameters(self, print_all=False):
         print("-" * 50)
@@ -119,6 +122,11 @@ class GlobalModel(object):
             self.classifier.load_state_dict(torch.load(global_classifier_path))
             print(f"[INFO] load global classifier from {global_classifier_path}")
 
+        # load global discriminator
+        global_discriminator_path = task_meta_dict["global_part"]["discriminator"]
+        self.global_discriminator.load_state_dict(torch.load(global_discriminator_path))
+        print(f"[INFO] load global discriminator from {global_discriminator_path}")
+
         # load embeddings
         embedding_meta_dict = task_meta_dict["global_part"]["embeddings"]
         for key, emb_path in embedding_meta_dict.items():
@@ -160,11 +168,17 @@ class GlobalModel(object):
         # save global model
         global_classifier = "global_classifier_" + str(timestamp) + extension
         global_classifier_path = os.path.join(model_checkpoint_folder, global_classifier)
+        global_discriminator = "global_discriminator" + str(timestamp) + extension
+        global_discriminator_path = os.path.join(model_checkpoint_folder, global_discriminator)
+
         model_meta = dict()
         model_meta["global_part"] = dict()
         model_meta["global_part"]["classifier"] = global_classifier_path
+        model_meta["global_part"]["discriminator"] = global_discriminator_path
         torch.save(self.classifier.state_dict(), global_classifier_path)
+        torch.save(self.global_discriminator.state_dict(), global_discriminator_path)
         print(f"[INFO] saved global classifier model to: {global_classifier_path}")
+        print(f"[INFO] saved global discriminator model to: {global_discriminator_path}")
 
         # save embeddings
         embedding_meta_dict = dict()
@@ -203,6 +217,10 @@ class GlobalModel(object):
             param.requires_grad = not is_freeze
 
     def freeze_bottom(self, is_freeze=False, region_idx_list=None):
+        # freeze global discriminator model
+        for param in self.global_discriminator.parameters():
+            param.requires_grad = not is_freeze
+
         # freeze region models
         if region_idx_list is None:
             for rg_model in self.regional_model_list:
@@ -321,58 +339,52 @@ class GlobalModel(object):
 
     def compute_feature_group_loss(self,
                                    total_domain_loss,
-                                   output_list,
                                    src_feat_gp_list,
                                    tgt_feat_gp_list,
                                    domain_source_labels,
                                    domain_target_labels,
                                    **kwargs):
+        src_output_list = list()
+        tgt_output_list = list()
         if self.is_regional_model_list_empty() is False:
             for regional_model, src_fg, tgt_fg in zip(self.regional_model_list, src_feat_gp_list, tgt_feat_gp_list):
-                domain_loss, output = regional_model.compute_loss(src_fg,
-                                                                  tgt_fg,
-                                                                  domain_source_labels,
-                                                                  domain_target_labels,
-                                                                  **kwargs)
-                output_list.append(output)
+                domain_loss, src_output, tgt_output = regional_model.compute_loss(src_fg,
+                                                                                  tgt_fg,
+                                                                                  domain_source_labels,
+                                                                                  domain_target_labels,
+                                                                                  **kwargs)
+                src_output_list.append(src_output)
+                tgt_output_list.append(tgt_output)
                 total_domain_loss += domain_loss
-        return total_domain_loss, output_list
+        return total_domain_loss, src_output_list, tgt_output_list
 
     def compute_feature_group_interaction_loss(self,
                                                total_domain_loss,
-                                               output_list,
                                                src_feat_gp_list,
                                                tgt_feat_gp_list,
                                                domain_source_labels,
                                                domain_target_labels,
                                                **kwargs):
+        src_output_list = list()
+        tgt_output_list = list()
         if self.feature_interactive_model:
-            intr_domain_loss, int_output_list = self.feature_interactive_model.compute_loss(src_feat_gp_list,
-                                                                                            tgt_feat_gp_list,
-                                                                                            domain_source_labels,
-                                                                                            domain_target_labels,
-                                                                                            **kwargs)
+            intr_domain_loss, src_int_output_list, tgt_int_output_list = self.feature_interactive_model.compute_loss(
+                src_feat_gp_list,
+                tgt_feat_gp_list,
+                domain_source_labels,
+                domain_target_labels,
+                **kwargs)
             total_domain_loss += intr_domain_loss
-            output_list += int_output_list
-        return total_domain_loss, output_list
+            src_output_list += src_int_output_list
+            tgt_output_list += tgt_int_output_list
+
+        return total_domain_loss, src_output_list, tgt_output_list
 
     def compute_total_loss(self, source_data, target_data, source_label, domain_source_labels, domain_target_labels,
                            **kwargs):
 
         src_wide_list, src_deep_par_list = self.partition_data_fn(source_data)
         tgt_wide_list, tgt_deep_par_list = self.partition_data_fn(target_data)
-
-        # total_domain_loss = torch.tensor(0.)
-        # output_list = []
-        # for regional_model, src_data, tgt_data in zip(self.regional_model_list, src_deep_par_list, tgt_deep_par_list):
-        #     src_feat_group = self._combine_features(src_data)
-        #     tgt_feat_group = self._combine_features(tgt_data)
-        #     domain_loss, output = regional_model.compute_total_loss(src_feat_group, tgt_feat_group, source_label,
-        #                                                             domain_source_labels,
-        #                                                             domain_target_labels,
-        #                                                             **kwargs)
-        #     output_list.append(output)
-        #     total_domain_loss += domain_loss
 
         src_feat_gp_list = list()
         tgt_feat_gp_list = list()
@@ -383,46 +395,62 @@ class GlobalModel(object):
         src_feat_gp_list = compute_feature_crossing(self.feature_cross_model, src_feat_gp_list)
         tgt_feat_gp_list = compute_feature_crossing(self.feature_cross_model, tgt_feat_gp_list)
 
-        total_domain_loss = torch.tensor(0.)
-        output_list = []
-        total_domain_loss, output_list = self.compute_feature_group_loss(total_domain_loss,
-                                                                         output_list,
-                                                                         src_feat_gp_list,
-                                                                         tgt_feat_gp_list,
-                                                                         domain_source_labels,
-                                                                         domain_target_labels,
-                                                                         **kwargs)
-        # for regional_model, src_fg, tgt_fg in zip(self.regional_model_list, src_feat_gp_list, tgt_feat_gp_list):
-        #     domain_loss, output = regional_model.compute_loss(src_fg,
-        #                                                       tgt_fg,
-        #                                                       domain_source_labels,
-        #                                                       domain_target_labels,
-        #                                                       **kwargs)
-        #     output_list.append(output)
-        #     total_domain_loss += domain_loss
+        region_domain_loss = torch.tensor(0.)
+        src_all_output_list = list()
+        tgt_all_output_list = list()
+        region_domain_loss, src_output_list, tgt_output_list = self.compute_feature_group_loss(region_domain_loss,
+                                                                                               src_feat_gp_list,
+                                                                                               tgt_feat_gp_list,
+                                                                                               domain_source_labels,
+                                                                                               domain_target_labels,
+                                                                                               **kwargs)
+        src_all_output_list += src_output_list
+        tgt_all_output_list += tgt_output_list
 
-        total_domain_loss, output_list = self.compute_feature_group_interaction_loss(total_domain_loss,
-                                                                                     output_list,
-                                                                                     src_feat_gp_list,
-                                                                                     tgt_feat_gp_list,
-                                                                                     domain_source_labels,
-                                                                                     domain_target_labels,
-                                                                                     **kwargs)
+        region_domain_loss, src_output_list, tgt_output_list = self.compute_feature_group_interaction_loss(
+            region_domain_loss,
+            src_feat_gp_list,
+            tgt_feat_gp_list,
+            domain_source_labels,
+            domain_target_labels,
+            **kwargs)
+        src_all_output_list += src_output_list
+        tgt_all_output_list += tgt_output_list
 
-        output_list = src_wide_list + output_list if len(src_wide_list) > 0 else output_list
-        output = torch.cat(output_list, dim=1)
-        # print(f"[DEBUG] output shape:{output.shape}")
-        pred = self.classifier(output)
+        src_fed_output_list = src_wide_list + src_all_output_list if len(src_wide_list) > 0 else src_all_output_list
+        fed_output = torch.cat(src_fed_output_list, dim=1)
+        # print(f"[DEBUG] src_all_output_list shape:{len(src_all_output_list)}")
+        # print(f"[DEBUG] tgt_all_output_list shape:{len(tgt_all_output_list)}")
+        # print(f"[DEBUG] fed_output shape:{fed_output.shape}")
+        fed_prediction = self.classifier(fed_output)
 
+        # compute global classification loss
         if self.loss_name == "CE":
             source_label = source_label.flatten().long()
         else:
             # using BCELogitLoss
-            source_label = source_label.reshape(-1, 1).type_as(pred)
+            source_label = source_label.reshape(-1, 1).type_as(fed_prediction)
+        class_loss = self.classifier_criterion(fed_prediction, source_label)
+        total_loss = class_loss + self.beta * region_domain_loss
 
-        class_loss = self.classifier_criterion(pred, source_label)
+        # compute global domain adaption loss
+        apply_global_domain_adaption = kwargs["apply_global_domain_adaption"]
+        if apply_global_domain_adaption:
+            print("[INFO] apply global domain adaption")
+            alpha = kwargs["alpha"]
+            src_output = torch.cat(src_all_output_list, dim=1)
+            tgt_output = torch.cat(tgt_all_output_list, dim=1)
+            domain_feat = torch.cat((src_output, tgt_output), dim=0)
+            domain_labels = torch.cat((domain_source_labels, domain_target_labels), dim=0)
+            perm = torch.randperm(domain_feat.shape[0])
+            domain_feat = domain_feat[perm]
+            domain_labels = domain_labels[perm]
+            print(f"[DEBUG] domain_feat shape:{domain_feat.shape}")
+            print(f"[DEBUG] domain_labels shape:{domain_labels.shape}")
+            domain_output = self.global_discriminator(domain_feat, alpha)
+            global_domain_loss = self.discriminator_criterion(domain_output, domain_labels)
+            total_loss += global_domain_loss
 
-        total_loss = class_loss + self.beta * total_domain_loss
         return total_loss
 
     def _calculate_feature_group_output_list(self, deep_par_list):
@@ -453,9 +481,7 @@ class GlobalModel(object):
                 all_fg_output_list = fg_output_list + fgi_output_list if fgi_output_list else fg_output_list
             output_list = wide_list + all_fg_output_list if len(wide_list) > 0 else all_fg_output_list
 
-        # print("[DEBUG] output_list", output_list, len(output_list))
         output = torch.cat(output_list, dim=1)
-        # print("[DEBUG] output", output, output.shape)
         return output
 
     def compute_classification_loss(self, data, label):
@@ -592,19 +618,21 @@ class RegionalModel(object):
         return list(self.aggregator.parameters())
 
     def compute_output(self, data):
+        # print("@@@ input data:", data, data.shape)
         batch_feat = self.extractor(data)
+        # print("@@@ batch_feat:", batch_feat, batch_feat.shape)
         output = self.aggregator(batch_feat)
+        # print("@@@ output:", output, output.shape)
         return output
 
-    def compute_loss(self, source_data, target_data, domain_source_labels, domain_target_labels,
-                     **kwargs):
+    def compute_loss(self, source_data, target_data, domain_source_labels, domain_target_labels, **kwargs):
         alpha = kwargs["alpha"]
 
         num_sample = source_data.shape[0] + target_data.shape[0]
         source_feat = self.extractor(source_data)
         target_feat = self.extractor(target_data)
 
-        output = self.aggregator(source_feat)
+        # src_output = self.aggregator(source_feat)
 
         # print("[DEBUG] domain_source_labels should all be zero: \n", domain_source_labels)
         # print("[DEBUG] domain_target_labels should all be one: \n", domain_target_labels)
@@ -618,7 +646,21 @@ class RegionalModel(object):
         domain_output = self.discriminator(domain_feat, alpha)
         domain_loss = self.discriminator_criterion(domain_output, domain_labels)
 
-        return domain_loss, output
+        # domain_prob = torch.softmax(domain_output[:source_feat.shape[0]], dim=1)
+        # attention_value = entropy(domain_prob)
+        # source_feat = attention_value * source_feat
+        # target_feat = attention_value * target_feat
+
+        src_output = self.aggregator(source_feat)
+        tgt_output = self.aggregator(target_feat)
+
+        # src_output = (1 + attention_value) * src_output
+        # print(f"[{self.__class__}] domain_output shape:{domain_output.shape}")
+        # print(f"[{self.__class__}] domain_prob shape:{domain_prob.shape}")
+        # print(f"[{self.__class__}] domain_prob:{domain_prob}")
+        # print(f"[{self.__class__}] domain_prob_2:{entropy(domain_prob)}")
+        # print(f"[{self.__class__}] src_output shape:{src_output.shape}")
+        return domain_loss, src_output, tgt_output
 
     def calculate_domain_discriminator_correctness(self, data, is_source=True):
         if is_source:
@@ -630,3 +672,9 @@ class RegionalModel(object):
         pred_cls = pred.data.max(dim=1)[1]
         res = pred_cls.eq(labels).sum().item()
         return res
+
+
+def entropy(predictions):
+    epsilon = 1e-8
+    h = -predictions * torch.log(predictions + epsilon)
+    return h.sum(dim=1, keepdim=True)

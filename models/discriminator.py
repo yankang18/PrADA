@@ -2,6 +2,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Function
 
+from models.model_utils import init_weights
+
 
 class GradientReverseFunction(Function):
 
@@ -37,6 +39,8 @@ class RegionDiscriminator(nn.Module):
             nn.Linear(in_features=40, out_features=2)
         )
 
+        # self.discriminator.apply(init_weights)
+
     def apply_discriminator(self, x):
         return self.discriminator(x)
 
@@ -49,22 +53,21 @@ class RegionDiscriminator(nn.Module):
 activation_fn = nn.LeakyReLU()
 
 
-# activation_fn = Mish()
-
-
 class GlobalDiscriminator(nn.Module):
 
     def __init__(self, input_dim):
         super(GlobalDiscriminator, self).__init__()
         self.discriminator = nn.Sequential(
-            nn.utils.spectral_norm(nn.Linear(in_features=input_dim, out_features=10)),
-            nn.BatchNorm1d(10),
+            nn.utils.spectral_norm(nn.Linear(in_features=input_dim, out_features=12)),
+            nn.BatchNorm1d(12),
             activation_fn,
-            nn.Linear(in_features=10, out_features=5),
-            nn.BatchNorm1d(5),
+            nn.Linear(in_features=12, out_features=6),
+            nn.BatchNorm1d(6),
             activation_fn,
-            nn.Linear(in_features=5, out_features=2),
+            nn.Linear(in_features=6, out_features=2),
         )
+
+        # self.discriminator.apply(init_weights)
 
     def apply_discriminator(self, x):
         return self.discriminator(x)
@@ -110,6 +113,8 @@ class CensusRegionDiscriminator(nn.Module):
             nn.Linear(in_features=10, out_features=2),
             # nn.BatchNorm1d(2),
         )
+
+        # self.discriminator.apply(init_weights)
 
     def apply_discriminator(self, x):
         return self.discriminator(x)
