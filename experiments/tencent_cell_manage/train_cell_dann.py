@@ -1,10 +1,10 @@
 from datasets.cell_manage_dataloader import get_dataset, get_cell_manager_dataloader
-from models.classifier import CensusRegionAggregator
+from models.classifier import CensusFeatureAggregator
 from models.dann_models import create_embeddings
 from models.discriminator import CensusRegionDiscriminator
 from models.experiment_dann_learner import FederatedDAANLearner
 from models.feature_extractor import CensusRegionFeatureExtractorDense
-from models.model_config import wire_global_model
+from models.model_config import wire_fg_dann_global_model
 from utils import get_timestamp
 
 
@@ -30,7 +30,7 @@ def create_model_group(extractor_input_dims):
     create a group of models, namely feature extractor, aggregator and discriminator, for each feature group
     """
     extractor = CensusRegionFeatureExtractorDense(input_dims=extractor_input_dims)
-    aggregator = CensusRegionAggregator(input_dim=extractor_input_dims[-1])
+    aggregator = CensusFeatureAggregator(input_dim=extractor_input_dims[-1])
     discriminator = CensusRegionDiscriminator(input_dim=extractor_input_dims[-1])
     return extractor, aggregator, discriminator
 
@@ -122,14 +122,14 @@ def create_global_dann_model(pos_class_weight=1.0):
     using_transform_matrix = True
     using_feature_group = True
 
-    global_model = wire_global_model(embedding_dict=embedding_dict,
-                                     input_dims_list=input_dims_list,
-                                     num_wide_feature=num_wide_feature,
-                                     using_feature_group=using_feature_group,
-                                     using_transform_matrix=using_transform_matrix,
-                                     partition_data_fn=partition_data,
-                                     create_model_group_fn=create_model_group,
-                                     pos_class_weight=pos_class_weight)
+    global_model = wire_fg_dann_global_model(embedding_dict=embedding_dict,
+                                             feature_extractor_architecture_list=input_dims_list,
+                                             num_wide_feature=num_wide_feature,
+                                             using_feature_group=using_feature_group,
+                                             using_transform_matrix=using_transform_matrix,
+                                             partition_data_fn=partition_data,
+                                             create_model_group_fn=create_model_group,
+                                             pos_class_weight=pos_class_weight)
 
     return global_model
 
