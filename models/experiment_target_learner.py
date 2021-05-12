@@ -47,7 +47,8 @@ class FederatedTargetLearner(object):
         """Save trained model."""
         self.model.save_model(self.root, task_id, self.task_meta_file_name, timestamp=timestamp)
 
-    def train_target_models(self, epochs, optimizer, lr, train_bottom_only=False, curr_global_epoch=0, global_epochs=1):
+    def train_target_models(self, epochs, optimizer, lr, train_bottom_only=False,
+                            curr_global_epoch=0, global_epochs=1, metric=('ks', 'auc')):
         num_batch = len(self.target_train_loader)
         loss = list()
         curr_lr = lr
@@ -84,14 +85,13 @@ class FederatedTargetLearner(object):
                               f'\t loss:{class_loss}\t val target acc: {tgt_cls_acc:.6f}')
                         print(f'current learning rate:{curr_lr}')
 
-                        # score = (tgt_cls_auc + tgt_cls_ks) / 2
-                        score = (tgt_cls_auc + tgt_cls_acc) / 2
-                        # score = tgt_cls_auc
-                        # score = target_cls_acc
+                        metric_dict = {'acc': tgt_cls_acc, 'auc': tgt_cls_auc, 'ks': tgt_cls_ks}
+                        score_list = [metric_dict[metric_name] for metric_name in metric]
+                        score = sum(score_list) / len(score_list)
                         if score > self.best_score:
                             self.best_score = score
                             print(f"best score:{self.best_score} "
-                                  f"with acc:{tgt_cls_acc}, auc:{tgt_cls_auc}, ks:{tgt_cls_ks}")
+                                  f"with TARGET: acc:{tgt_cls_acc}, auc:{tgt_cls_auc}, ks:{tgt_cls_ks}")
                             param_dict = self.model.get_global_classifier_parameters()
                             metric_dict = dict()
                             metric_dict["target_cls_acc"] = tgt_cls_acc
@@ -152,7 +152,8 @@ class FederatedTargetLearner(object):
         self.fine_tuning_region_idx_list = fine_tuning_region_index_list
 
     def train_target_with_alternating(self, global_epochs, top_epochs, bottom_epochs,
-                                      lr, task_id, dann_exp_result=None):
+                                      lr, task_id, dann_exp_result=None, metric=('ks', 'auc'),
+                                      weight_decay=0.0001):
         self.task_id = task_id
 
         if dann_exp_result:
@@ -161,32 +162,38 @@ class FederatedTargetLearner(object):
             optimizer = optim.SGD(self.model.parameters(), lr=lr, momentum=0.90)
         else:
             print("[DEBUG] Do not apply DANN lr parameters")
-            optimizer = optim.SGD(self.model.parameters(), lr=lr, momentum=0.99, weight_decay=0.001)
+            optimizer = optim.SGD(self.model.parameters(), lr=lr, momentum=0.99, weight_decay=weight_decay)
+            # optimizer = optim.SGD(self.model.parameters(), lr=lr, momentum=0.99)
 
         curr_lr = lr
-        step_lr = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.95)
+        # step_lr = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.95)
         self.model.print_parameters()
 
         loss_list = list()
         self.patient_count = 0
         self.stop_training = False
         self.best_score = -float('inf')
-        self.model.freeze_bottom(is_freeze=True)
+        # self.model.freeze_bottom(is_freeze=True)
         for ep in range(global_epochs):
 
             print(f"[INFO] ===> global epoch {ep}, start fine-tuning top")
             self.model.freeze_top(is_freeze=False)
             self.model.freeze_bottom(is_freeze=True)
-            loss_list += self.train_target_models(top_epochs, optimizer, curr_lr, train_bottom_only=True,
-                                                  curr_global_epoch=ep, global_epochs=global_epochs)
+            loss_list += self.train_target_models(top_epochs, optimizer, curr_lr,
+                                                  train_bottom_only=True,
+                                                  curr_global_epoch=ep,
+                                                  global_epochs=global_epochs,
+                                                  metric=metric)
 
             print(f"[INFO] ===> global epoch {ep}, start fine-tuning bottom")
             self.model.freeze_top(is_freeze=False)
             self.model.freeze_bottom(is_freeze=True)
             loss_list += self.train_target_models(bottom_epochs, optimizer, curr_lr,
-                                                  curr_global_epoch=ep, global_epochs=global_epochs)
-            step_lr.step()
-            curr_lr = step_lr.get_last_lr()
+                                                  curr_global_epoch=ep,
+                                                  global_epochs=global_epochs,
+                                                  metric=metric)
+            # step_lr.step()
+            # curr_lr = step_lr.get_last_lr()
             print("[INFO] change learning rate to {0}".format(curr_lr))
 
             if self.stop_training:
