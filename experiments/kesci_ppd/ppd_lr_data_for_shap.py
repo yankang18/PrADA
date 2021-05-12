@@ -2,11 +2,11 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
 from datasets.census_dataloader import get_income_census_dataloaders
-from experiments.income_census.train_census_dann import create_global_model_model
+from experiments.income_census.train_census_fg_dann import create_global_model
 from utils import test_classification, produce_data_for_lr_shap
 from data_process.census_process.mapping_resource import continuous_cols, categorical_cols, target_col_name
 from datasets.ppd_dataloader import get_pdd_dataloaders_ob
-from experiments.kesci_ppd.train_ppd_dann import create_pdd_global_model
+from experiments.kesci_ppd.train_ppd_fg_dann import create_pdd_global_model
 from utils import test_classification
 
 if __name__ == "__main__":

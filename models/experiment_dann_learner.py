@@ -186,7 +186,7 @@ class FederatedDAANLearner(object):
         src_train_iter = ForeverDataIterator(self.src_train_loader)
         tgt_train_iter = ForeverDataIterator(self.tgt_train_loader)
 
-        optimizer = optim.SGD(self.global_model.parameters(), lr=lr, momentum=momentum, weight_decay=weight_decay)
+        src_optimizer = optim.SGD(self.global_model.parameters(), lr=lr, momentum=momentum, weight_decay=weight_decay)
 
         num_batches_per_epoch = len(src_train_iter)
         num_validations, valid_batch_interval = self.compute_number_validations(num_batches_per_epoch)
@@ -206,7 +206,7 @@ class FederatedDAANLearner(object):
 
                 p = float(batch_idx + start_steps) / total_steps
                 alpha = 2. / (1. + np.exp(-10 * p)) - 1
-                curr_lr = adjust_learning_rate(optimizer, p, lr_0=lr)
+                curr_lr = adjust_learning_rate(src_optimizer, p, lr_0=lr)
 
                 # source has domain label of zero, while target has domain label of one
                 domain_source_labels = torch.zeros(source_label.shape[0]).long()
@@ -225,8 +225,8 @@ class FederatedDAANLearner(object):
 
                 # back-propagation and optimization
                 total_loss.backward()
-                optimizer.step()
-                optimizer.zero_grad()
+                src_optimizer.step()
+                src_optimizer.zero_grad()
 
                 with torch.no_grad():
                     if (batch_idx + 1) % valid_batch_interval == 0:

@@ -1,13 +1,14 @@
 from collections import OrderedDict
 
 from datasets.ppd_dataloader import get_datasets, get_dataloader
+from experiments.kesci_ppd.global_config import feature_extractor_architecture_list, data_tag, tgt_tag
 from experiments.kesci_ppd.meta_data import column_name_list, group_ind_list, group_info, embedding_shape_map
-from models.classifier import CensusRegionAggregator
+from models.classifier import CensusFeatureAggregator
 from models.dann_models import create_embeddings
 from models.discriminator import CensusRegionDiscriminator
 from models.experiment_dann_learner import FederatedDAANLearner
 from models.feature_extractor import CensusRegionFeatureExtractorDense
-from models.model_config import wire_global_model
+from models.model_config import wire_fg_dann_global_model
 from utils import get_timestamp, get_current_date
 
 
@@ -65,7 +66,7 @@ def create_model_group(extractor_input_dim):
     """
 
     extractor = CensusRegionFeatureExtractorDense(input_dims=extractor_input_dim)
-    classifier = CensusRegionAggregator(input_dim=extractor_input_dim[-1])
+    classifier = CensusFeatureAggregator(input_dim=extractor_input_dim[-1])
     discriminator = CensusRegionDiscriminator(input_dim=extractor_input_dim[-1])
     return extractor, classifier, discriminator
 
@@ -97,43 +98,47 @@ def create_pdd_global_model(pos_class_weight=1.0):
     embedding_dict = create_embedding_dict()
     print("[INFO] embedding_dict", embedding_dict)
 
-    input_dims_list = [
-        # [31, 40, 31, 8],
-        [15, 24, 15, 6],
-        [85, 110, 85, 10],
-        [30, 50, 30, 8],
-        [18, 30, 18, 6],
-        [55, 80, 55, 10]
-    ]
-    # input_dims_list = [[15, 24, 15, 6],
-    #                    [85, 100, 85, 10],
-    #                    [27, 50, 27, 8],
-    #                    [18, 30, 18, 6],
-    #                    [55, 80, 55, 10]]
-
     num_wide_feature = 6
     # num_wide_feature = 17
     using_feature_group = True
     using_interaction = False
     using_transform_matrix = False
 
-    global_model = wire_global_model(embedding_dict=embedding_dict,
-                                     input_dims_list=input_dims_list,
-                                     num_wide_feature=num_wide_feature,
-                                     using_feature_group=using_feature_group,
-                                     using_interaction=using_interaction,
-                                     using_transform_matrix=using_transform_matrix,
-                                     partition_data_fn=partition_data,
-                                     create_model_group_fn=create_model_group,
-                                     pos_class_weight=pos_class_weight)
+    global_model = wire_fg_dann_global_model(embedding_dict=embedding_dict,
+                                             feature_extractor_architecture_list=feature_extractor_architecture_list,
+                                             num_wide_feature=num_wide_feature,
+                                             using_feature_group=using_feature_group,
+                                             using_interaction=using_interaction,
+                                             using_transform_matrix=using_transform_matrix,
+                                             partition_data_fn=partition_data,
+                                             create_model_group_fn=create_model_group,
+                                             pos_class_weight=pos_class_weight)
 
     return global_model
 
 
 if __name__ == "__main__":
 
+    # hyper-parameters
+    momentum = 0.99
+    weight_decay = 0.0001
+    apply_global_domain_adaption = False
+    global_domain_adaption_lambda = 1.0
+    # batch_size_list = [128]
+    batch_size_list = [64]
+    # learning_rate_list = [1.2e-3]
+    # learning_rate_list = [1.2e-3]
+    learning_rate_list = [5e-4]
+    # learning_rate_list = [8e-4]
+    # batch_size_list = [256, 512]
+    # learning_rate_list = [3e-4, 8e-4, 1e-3]
+    pos_class_weight = 1.0
+    epoch_patience = 2.5
+    metrics = ('ks', 'auc')
+
     exp_dir = "ppd_dann"
 
+    # load data
     # data_dir = "/Users/yankang/Documents/Data/Data_Open_Analysis_master/Kesci_PPD/PPD_data_v1/"
     # source_train_file_name = data_dir + "PPD_2014_1to9_train.csv"
     # target_train_file_name = data_dir + 'PPD_2014_10to12_train.csv'
@@ -161,15 +166,14 @@ if __name__ == "__main__":
     # target_train_file_name = 'PPD_2014_tgt_10to11_train.csv'
     # target_test_file_name = 'PPD_2014_tgt_10to11_test.csv'
 
-    timestamp = '1620085151'
-    data_dir = f"/Users/yankang/Documents/Data/Data_Open_Analysis_master/Kesci_PPD/PPD_data_output_{timestamp}/"
+    data_dir = f"/Users/yankang/Documents/Data/Data_Open_Analysis_master/Kesci_PPD/PPD_data_output_1620085151/"
     # source_train_file = "PPD_2014_src_1to9_train.csv"
     # source_test_file = 'PPD_2014_src_1to9_test.csv'
 
-    source_train_file_name = data_dir + "PPD_2014_src_1to9_train.csv"
-    source_test_file_name = data_dir + 'PPD_2014_src_1to9_test.csv'
-    target_train_file_name = data_dir + 'PPD_2014_tgt_10to11_train.csv'
-    target_test_file_name = data_dir + 'PPD_2014_tgt_10to11_test.csv'
+    source_train_file_name = data_dir + f"PPD_2014_src_1to9_{data_tag}_{tgt_tag}_train.csv"
+    source_test_file_name = data_dir + f'PPD_2014_src_1to9_{data_tag}_{tgt_tag}_test.csv'
+    target_train_file_name = data_dir + f'PPD_2014_tgt_10to11_{data_tag}_{tgt_tag}_train.csv'
+    target_test_file_name = data_dir + f'PPD_2014_tgt_10to11_{data_tag}_{tgt_tag}_test.csv'
 
     split_ratio = 1.0
     src_train_dataset, _ = get_datasets(ds_file_name=source_train_file_name, shuffle=True, split_ratio=split_ratio)
@@ -177,16 +181,7 @@ if __name__ == "__main__":
     src_test_dataset, _ = get_datasets(ds_file_name=source_test_file_name, shuffle=True, split_ratio=split_ratio)
     tgt_test_dataset, _ = get_datasets(ds_file_name=target_test_file_name, shuffle=True, split_ratio=split_ratio)
 
-    apply_global_domain_adaption = False
-    # batch_size_list = [128]
-    batch_size_list = [256]
-    learning_rate_list = [1.2e-3]
-    # learning_rate_list = [1.2e-3]
-    # learning_rate_list = [6e-4]
-    # batch_size_list = [256, 512]
-    # learning_rate_list = [3e-4, 8e-4, 1e-3]
     tries = 1
-    pos_class_weight = 1.0
     param_comb_list = list()
     for lr in learning_rate_list:
         for bs in batch_size_list:
@@ -197,11 +192,12 @@ if __name__ == "__main__":
     for param_comb in param_comb_list:
         lr, bs = param_comb
         for version in range(tries):
-            task_id = date + "_pw" + str(pos_class_weight) + "_bs" + str(bs) + "_lr" + str(lr) + "_v" + str(
-                version) + "_t" + str(timestamp)
+            task_id = date + "_" + data_tag + "_" + tgt_tag + "_pw" + str(pos_class_weight) + "_bs" + str(
+                bs) + "_lr" + str(lr) + "_v" + str(version) + "_gd" + str(apply_global_domain_adaption) + "_t" + str(
+                timestamp)
             print("[INFO] perform task:{0}".format(task_id))
 
-            global_model = create_pdd_global_model(pos_class_weight=1.0)
+            global_model = create_pdd_global_model(pos_class_weight=pos_class_weight)
             print("[INFO] model created.")
 
             src_train_loader = get_dataloader(src_train_dataset, batch_size=bs)
@@ -218,12 +214,15 @@ if __name__ == "__main__":
                                         target_train_loader=tgt_train_loader,
                                         target_val_loader=tgt_test_loader,
                                         max_epochs=400,
-                                        epoch_patience=10)
+                                        epoch_patience=epoch_patience)
             plat.set_model_save_info(exp_dir)
             plat.train_dann(epochs=120,
                             lr=lr,
                             task_id=task_id,
-                            metric=('ks', 'auc'),
-                            apply_global_domain_adaption=apply_global_domain_adaption)
+                            metric=metrics,
+                            apply_global_domain_adaption=apply_global_domain_adaption,
+                            global_domain_adaption_lambda=global_domain_adaption_lambda,
+                            momentum=momentum,
+                            weight_decay=weight_decay)
 
             global_model.print_parameters()

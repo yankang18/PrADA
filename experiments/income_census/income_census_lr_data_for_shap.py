@@ -1,5 +1,5 @@
 from datasets.census_dataloader import get_income_census_dataloaders
-from experiments.income_census.train_census_dann import create_global_model_model
+from experiments.income_census.train_census_fg_dann import create_global_model
 from utils import test_classification, produce_data_for_lr_shap
 
 if __name__ == "__main__":
@@ -19,7 +19,7 @@ if __name__ == "__main__":
     dann_task_id_list = ["20210507_DEGREE_0.0005_64_1620288753"]
 
     # Initialize models
-    model = create_global_model_model(pos_class_weight=1.0)
+    model = create_global_model(pos_class_weight=1.0)
 
     for task_id in dann_task_id_list:
         print(f'------ [INFO] create lr-data-shap for {dann_task_id_list} ------')

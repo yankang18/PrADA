@@ -1,6 +1,6 @@
 from collections import OrderedDict
 
-from models.classifier import GlobalClassifier, CensusRegionAggregator
+from models.classifier import GlobalClassifier, CensusFeatureAggregator
 from datasets.lending_dataloader import get_lending_dataloader
 from models.discriminator import CensusRegionDiscriminator
 from models.experiment_dann_learner import FederatedDAANLearner
@@ -97,7 +97,7 @@ def partition_data(data):
 
 def create_region_model_wrapper(extractor_input_dims_list):
     extractor = CensusRegionFeatureExtractorDense(input_dims=extractor_input_dims_list)
-    region_classifier = CensusRegionAggregator(input_dim=extractor_input_dims_list[-1])
+    region_classifier = CensusFeatureAggregator(input_dim=extractor_input_dims_list[-1])
     discriminator = CensusRegionDiscriminator(input_dim=extractor_input_dims_list[-1])
     return RegionalModel(extractor=extractor,
                          aggregator=region_classifier,

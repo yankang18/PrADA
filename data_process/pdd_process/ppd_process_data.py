@@ -66,8 +66,17 @@ def select_positive(data, select_pos_ratio=0.5):
 
 
 def create_source_and_target(df_2014, df_datetime_2014,
-                             df_column_split_list, df_cat_mask_list, to_dir, train=True):
+                             df_column_split_list,
+                             df_cat_mask_list,
+                             to_dir,
+                             data_config,
+                             train=True):
     print("--- create_degree_source_target_data for {} data --- ".format("train" if train else "test"))
+
+    select_pos_ratio = data_config['select_pos_ratio']
+    tag_1 = data_config['tag_1']
+    num_tgt = data_config['num_tgt']
+    tag_2 = data_config['tag_2']
 
     df_2014_1to8 = df_2014[df_datetime_2014['ListingInfo_Month'] <= 8]
     df_2014_1to9 = df_2014[df_datetime_2014['ListingInfo_Month'] <= 9]
@@ -93,7 +102,7 @@ def create_source_and_target(df_2014, df_datetime_2014,
     print("data_2014_src_1to9", data_2014_src_1to9.shape)
 
     # define target
-    df_datetime_2014_10 = df_datetime_2014[df_datetime_2014['ListingInfo_Month'] == 10]
+    # df_datetime_2014_10 = df_datetime_2014[df_datetime_2014['ListingInfo_Month'] == 10]
     # df_2014_10_day15 = df_2014_10[df_datetime_2014_10['ListingInfo_DayofMonth'] >= 15]
     # data_2014_tgt_10_last_day15 = df_2014_10_day15.values
     data_2014_tgt_10 = df_2014_10.values
@@ -114,8 +123,8 @@ def create_source_and_target(df_2014, df_datetime_2014,
         # data_2014_src_1to8 = select_positive(data_2014_src_1to8, select_pos_ratio=0.5)
         # data_2014_src_1to9 = select_positive(data_2014_src_1to9, select_pos_ratio=0.5)
 
-        data_2014_tgt_10to11 = select_positive(data_2014_tgt_10to11, select_pos_ratio=0.1)
-        data_2014_tgt_9 = select_positive(data_2014_tgt_9, select_pos_ratio=0.1)
+        data_2014_tgt_10to11 = select_positive(data_2014_tgt_10to11, select_pos_ratio=select_pos_ratio)
+        data_2014_tgt_9 = select_positive(data_2014_tgt_9, select_pos_ratio=select_pos_ratio)
 
     print("[INFO] after select pos samples, data_2014_tgt_10to11:", data_2014_tgt_10to11.shape)
     print("[INFO] after select pos samples, data_2014_tgt_9:", data_2014_tgt_9.shape)
@@ -124,8 +133,8 @@ def create_source_and_target(df_2014, df_datetime_2014,
     data_2014_src_1to8 = shuffle(data_2014_src_1to8)
     data_2014_src_1to9 = shuffle(data_2014_src_1to9)
     if train:
-        data_2014_tgt_9 = shuffle(data_2014_tgt_9)[:3000]
-        data_2014_tgt_10to11 = shuffle(data_2014_tgt_10to11)[:3000]
+        data_2014_tgt_9 = shuffle(data_2014_tgt_9)[:num_tgt]
+        data_2014_tgt_10to11 = shuffle(data_2014_tgt_10to11)[:num_tgt]
 
     df_2014_src_1to8 = pd.DataFrame(data=data_2014_src_1to8, columns=all_col_list)
     df_2014_src_1to9 = pd.DataFrame(data=data_2014_src_1to9, columns=all_col_list)
@@ -146,11 +155,11 @@ def create_source_and_target(df_2014, df_datetime_2014,
 
     # save
     mode = "train" if train else "test"
-    df_2014_src_1to8.to_csv("{}/PPD_2014_src_1to8_{}.csv".format(to_dir, mode), index=False)
-    df_2014_src_1to9.to_csv("{}/PPD_2014_src_1to9_{}.csv".format(to_dir, mode), index=False)
+    df_2014_src_1to8.to_csv("{}/PPD_2014_src_1to8_{}_{}_{}.csv".format(to_dir, tag_1, tag_2, mode), index=False)
+    df_2014_src_1to9.to_csv("{}/PPD_2014_src_1to9_{}_{}_{}.csv".format(to_dir, tag_1, tag_2, mode), index=False)
 
-    df_2014_tgt_9.to_csv("{}/PPD_2014_tgt_9_{}.csv".format(to_dir, mode), index=False)
-    df_2014_tgt_10to11.to_csv("{}/PPD_2014_tgt_10to11_{}.csv".format(to_dir, mode), index=False)
+    df_2014_tgt_9.to_csv("{}/PPD_2014_tgt_9_{}_{}_{}.csv".format(to_dir, tag_1, tag_2, mode), index=False)
+    df_2014_tgt_10to11.to_csv("{}/PPD_2014_tgt_10to11_{}_{}_{}.csv".format(to_dir, tag_1, tag_2, mode), index=False)
 
 
 if __name__ == "__main__":
@@ -189,9 +198,24 @@ if __name__ == "__main__":
 
     df_2014 = pd.read_csv(to_dir + "PPD_data_2014_train.csv", skipinitialspace=True)
     df_datetime_2014 = pd.read_csv(to_dir + "PPD_datetime_2014_train.csv", skipinitialspace=True)
-    # print("df_2014:")
-    # print(df_2014.head())
+
+    # num_tgt = 5000
+    # tag_2 = 'tgt5000'
+    # num_tgt = 4000
+    # tag_2 = 'tgt4000'
+    num_tgt = 3000
+    tag_2 = 'tgt3000'
+    # select_pos_ratio = 0.2
+    # tag_1 = 's02'
+    # select_pos_ratio = 0.2
+    # tag = 's02'
+    select_pos_ratio = 0.3
+    tag_1 = 's03'
+    # select_pos_ratio = 0.4
+    # tag = 's04'
+
+    data_config = {"select_pos_ratio": select_pos_ratio, "tag_1": tag_1, "num_tgt": num_tgt, "tag_2": tag_2}
     create_source_and_target(df_2014, df_datetime_2014,
-                             df_column_split_list, df_cat_mask_list, to_dir, train=True)
+                             df_column_split_list, df_cat_mask_list, to_dir, data_config, train=True)
     create_source_and_target(df_2014, df_datetime_2014,
-                             df_column_split_list, df_cat_mask_list, to_dir, train=False)
+                             df_column_split_list, df_cat_mask_list, to_dir, data_config, train=False)

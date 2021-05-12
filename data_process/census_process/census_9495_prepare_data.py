@@ -225,7 +225,7 @@ def create_degree_source_target_data(p_census, from_dir, to_dir, train=True, sel
     print("(orig) undergrad_census_df_1 shape:", undergrad_census_df_1.shape)
     print("(orig) undergrad_census_df_0 shape:", undergrad_census_df_0.shape)
 
-    num_pos = 300
+    num_pos = 200
     num_neg = 4000 - num_pos
     if train:
         grad_census_values_1 = grad_census_df_1.values[:num_pos]

@@ -1,13 +1,15 @@
 from collections import OrderedDict
 
+from data_process.census_process.mapping_resource import embedding_dim_map
 from datasets.census_dataloader import get_census_adult_dataloaders
-from models.classifier import CensusRegionAggregator
+from experiments.income_census.global_config import feature_extractor_architecture_list, \
+    pre_train_dann_hypterparameters
+from models.classifier import CensusFeatureAggregator
 from models.dann_models import create_embedding
 from models.discriminator import CensusRegionDiscriminator
 from models.experiment_dann_learner import FederatedDAANLearner
 from models.feature_extractor import CensusRegionFeatureExtractorDense
-from data_process.census_process.mapping_resource import embedding_dim_map
-from models.model_config import wire_global_model
+from models.model_config import wire_fg_dann_global_model
 from utils import get_timestamp, get_current_date
 
 
@@ -79,16 +81,6 @@ from utils import get_timestamp, get_current_date
 
 
 def partition_data(data):
-    # feature_group_map = {"employment": {"class_worker", "major_ind_code", "major_occ_code", "unemp_reason",
-    #                                     "full_or_part_emp", "own_or_self"},
-    #                      "demo": {"education", "race", "age_index", "gender_index"},
-    #                      "residence": {"region_prev_res", "state_prev_res", "mig_chg_msa",
-    #                                    "mig_chg_reg", "mig_move_reg",
-    #                                    "mig_same", "mig_prev_sunbelt"},
-    #                      "household": {"marital_stat", "tax_filer_stat", "det_hh_fam_stat", "det_hh_summ",
-    #                                    "fam_under_18"},
-    #                      "Origin": {"hisp_origin", "country_father", "country_mother", "country_self", "citizenship"},
-    #                      "social_status": {"union_member", "vet_benefits", "vet_question"}}
     wide_feat = [data[:, 0].reshape(-1, 1),
                  data[:, 1].reshape(-1, 1),
                  # data[:, 2].reshape(-1, 1),
@@ -116,60 +108,34 @@ def partition_data(data):
                                                  "mig_chg_reg": data[:, 23],
                                                  "mig_move_reg": data[:, 24],
                                                  "mig_same": data[:, 25],
-                                                 "mig_prev_sunbelt": data[:, 26]})}
+                                                 "mig_prev_sunbelt": data[:, 26],
+                                                 "hisp_origin": data[:, 31],
+                                                 "country_father": data[:, 32],
+                                                 "country_mother": data[:, 33],
+                                                 "country_self": data[:, 34],
+                                                 "citizenship": data[:, 35]
+                                                 })}
     household_feat = {"embeddings": OrderedDict({"tax_filer_stat": data[:, 27],
                                                  "det_hh_fam_stat": data[:, 28],
                                                  "det_hh_summ": data[:, 29],
                                                  "fam_under_18": data[:, 30]})}
-    origin_feat = {"embeddings": OrderedDict({"hisp_origin": data[:, 31],
-                                              "country_father": data[:, 32],
-                                              "country_mother": data[:, 33],
-                                              "country_self": data[:, 34],
-                                              "citizenship": data[:, 35]})}
-    # social_status_feat = {"embeddings": OrderedDict({"union_member": data[:, 33],
-    #                                                  "vet_benefits": data[:, 34],
-    #                                                  "vet_question": data[:, 35]})}
+    # origin_feat = {"embeddings": OrderedDict({"hisp_origin": data[:, 31],
+    #                                           "country_father": data[:, 32],
+    #                                           "country_mother": data[:, 33],
+    #                                           "country_self": data[:, 34],
+    #                                           "citizenship": data[:, 35]})}
 
-    deep_partition = [emp_feat, demo_feat, residence_feat, household_feat, origin_feat]
+    # deep_partition = [emp_feat, demo_feat, residence_feat, household_feat, origin_feat]
+    # deep_partition = [emp_feat, demo_feat, residence_feat, household_feat]
+    deep_partition = [emp_feat, demo_feat, residence_feat, household_feat]
     return wide_feat, deep_partition
 
 
-# def partition_data(data):
-#     wide_feat = [data[:, 0].reshape(-1, 1),
-#                  data[:, 1].reshape(-1, 1),
-#                  data[:, 2].reshape(-1, 1),
-#                  data[:, 3].reshape(-1, 1)]
-#     demo_feat = {"embeddings": OrderedDict({"age_bucket": data[:, 4],
-#                                             "marital_status": data[:, 5],
-#                                             "gender": data[:, 6],
-#                                             "native_country": data[:, 7],
-#                                             "race": data[:, 8],
-#                                             "relationship": data[:, 12]})}
-#     emp_feat = {"embeddings": OrderedDict({"age_bucket": data[:, 4],
-#                                            "workclass": data[:, 9],
-#                                            "occupation": data[:, 10],
-#                                            "education": data[:, 11]})}
-#     demo_emp_feat = {"embeddings": OrderedDict({"age_bucket": data[:, 4],
-#                                                 "relationship": data[:, 12],
-#                                                 "occupation": data[:, 10],
-#                                                 "education": data[:, 11]})}
-#     deep_partition = [demo_feat, emp_feat, demo_emp_feat]
-#     return wide_feat, deep_partition
-
-
-# def create_model_group(extractor_input_dim):
-#     extractor = CensusRegionFeatureExtractorDense(input_dims=extractor_input_dim)
-#     region_classifier = CensusRegionAggregator(input_dim=extractor_input_dim[-1])
-#     discriminator = CensusRegionDiscriminator(input_dim=extractor_input_dim[-1])
-#     return RegionalModel(extractor=extractor,
-#                          aggregator=region_classifier,
-#                          discriminator=discriminator)
-
 def create_model_group(extractor_input_dim):
     extractor = CensusRegionFeatureExtractorDense(input_dims=extractor_input_dim)
-    classifier = CensusRegionAggregator(input_dim=extractor_input_dim[-1])
+    aggregator = CensusFeatureAggregator(input_dim=extractor_input_dim[-1])
     discriminator = CensusRegionDiscriminator(input_dim=extractor_input_dim[-1])
-    return extractor, classifier, discriminator
+    return extractor, aggregator, discriminator
 
 
 def create_embedding_dict(embedding_dim_map):
@@ -186,61 +152,56 @@ def create_embedding_dict(embedding_dim_map):
     return feat_embedding_dict
 
 
-def create_region_model_wrappers(input_dims_list):
-    wrapper_list = list()
-    for input_dim in input_dims_list:
-        wrapper_list.append(create_model_group(input_dim))
-    return wrapper_list
-
-
-def create_global_model_model(pos_class_weight=1.0):
-
+def create_global_model(pos_class_weight=1.0):
     embedding_dict = create_embedding_dict(embedding_dim_map)
-    input_dims_list = [[28, 40, 28, 6],
-                       [25, 40, 25, 6],
-                       [36, 52, 36, 8],
-                       [27, 40, 27, 6],
-                       [20, 36, 20, 6]]
 
     num_wide_feature = 5
     using_feature_group = True
     using_interaction = False
     using_transform_matrix = False
 
-    global_model = wire_global_model(embedding_dict=embedding_dict,
-                                     input_dims_list=input_dims_list,
-                                     num_wide_feature=num_wide_feature,
-                                     using_feature_group=using_feature_group,
-                                     using_interaction=using_interaction,
-                                     using_transform_matrix=using_transform_matrix,
-                                     partition_data_fn=partition_data,
-                                     create_model_group_fn=create_model_group,
-                                     pos_class_weight=pos_class_weight)
+    global_model = wire_fg_dann_global_model(embedding_dict=embedding_dict,
+                                             feature_extractor_architecture_list=feature_extractor_architecture_list,
+                                             num_wide_feature=num_wide_feature,
+                                             using_feature_group=using_feature_group,
+                                             using_interaction=using_interaction,
+                                             using_transform_matrix=using_transform_matrix,
+                                             partition_data_fn=partition_data,
+                                             create_model_group_fn=create_model_group,
+                                             pos_class_weight=pos_class_weight)
 
     return global_model
 
 
 if __name__ == "__main__":
-    model = create_global_model_model(pos_class_weight=1.0)
+    # lr = pre_train_dann_hypterparameters['lr']
+    lr = 5e-4
+    momentum = 0.99
+    weight_decay = 0.0001
 
+    batch_size = pre_train_dann_hypterparameters['batch_size']
+    apply_global_domain_adaption = pre_train_dann_hypterparameters['apply_global_domain_adaption']
+    global_domain_adaption_lambda = pre_train_dann_hypterparameters['global_domain_adaption_lambda']
+    pos_class_weight = pre_train_dann_hypterparameters['pos_class_weight']
+    epoch_patience = pre_train_dann_hypterparameters['epoch_patience']
+    valid_metric = pre_train_dann_hypterparameters['valid_metric']
+
+    census_dann_dir = "census_dann"
+
+    date = get_current_date()
+    timestamp = get_timestamp()
+
+    # load data
     data_dir = "/Users/yankang/Documents/Data/census/output/"
-
-    # source_adult_train_file_name = data_dir + 'undergrad_census9495_da_train.csv'
-    # target_adult_train_file_name = data_dir + 'grad_census9495_da_train.csv'
-    # source_adult_test_file_name = data_dir + 'undergrad_census9495_da_test.csv'
-    # target_adult_test_file_name = data_dir + 'grad_census9495_da_test.csv'
     source_adult_train_file_name = data_dir + 'undergrad_census9495_da_300_train.csv'
     target_adult_train_file_name = data_dir + 'grad_census9495_da_300_train.csv'
     source_adult_test_file_name = data_dir + 'undergrad_census9495_da_300_test.csv'
     target_adult_test_file_name = data_dir + 'grad_census9495_da_300_test.csv'
+    # source_adult_train_file_name = data_dir + 'undergrad_census9495_da_200_train.csv'
+    # target_adult_train_file_name = data_dir + 'grad_census9495_da_200_train.csv'
+    # source_adult_test_file_name = data_dir + 'undergrad_census9495_da_200_test.csv'
+    # target_adult_test_file_name = data_dir + 'grad_census9495_da_200_test.csv'
     tag = "DEGREE"
-
-    date = get_current_date()
-    lr = 5e-4
-    # batch_size = 128
-    batch_size = 64
-    apply_global_domain_adaption = True
-    timestamp = get_timestamp()
 
     print("[INFO] Load train data")
     source_adult_train_loader, _ = get_census_adult_dataloaders(
@@ -254,22 +215,26 @@ if __name__ == "__main__":
     target_adult_valid_loader, _ = get_census_adult_dataloaders(
         ds_file_name=target_adult_test_file_name, batch_size=batch_size * 4, split_ratio=1.0)
 
+    model = create_global_model(pos_class_weight=pos_class_weight)
     plat = FederatedDAANLearner(model=model,
                                 source_train_loader=source_adult_train_loader,
                                 source_val_loader=source_adult_valid_loader,
                                 target_train_loader=target_adult_train_loader,
                                 target_val_loader=target_adult_valid_loader,
                                 max_epochs=400,
-                                epoch_patience=3)
+                                epoch_patience=epoch_patience)
 
-    plat.set_model_save_info("census_dann")
+    plat.set_model_save_info(census_dann_dir)
 
-    task_id = date + "_" + tag + "_" + str(lr) + "_" + str(batch_size) + "_" + str(timestamp)
-
-    plat.train_dann(epochs=400,
+    task_id = date + "_" + tag + "_" + str(lr) + "_" + str(batch_size) + "_gd" + str(
+        apply_global_domain_adaption) + "_" + str(timestamp)
+    plat.train_dann(epochs=200,
                     lr=lr,
                     task_id=task_id,
-                    metric=('acc', 'auc'),
-                    apply_global_domain_adaption=apply_global_domain_adaption)
+                    metric=valid_metric,
+                    apply_global_domain_adaption=apply_global_domain_adaption,
+                    global_domain_adaption_lambda=global_domain_adaption_lambda,
+                    momentum=momentum,
+                    weight_decay=weight_decay)
 
     model.print_parameters()

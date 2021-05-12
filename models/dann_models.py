@@ -39,11 +39,11 @@ def compute_feature_crossing(feature_cross_model, feature_group_list):
 
 
 class GlobalModel(object):
-    def __init__(self, classifier, regional_model_list, embedding_dict, partition_data_fn, beta=1.0,
+    def __init__(self, source_classifier, regional_model_list, embedding_dict, partition_data_fn, beta=1.0,
                  pos_class_weight=1.0, loss_name="CE", feature_cross_model=None, feature_interactive_model=None,
                  discriminator=None):
         self.global_discriminator = discriminator
-        self.classifier = classifier
+        self.source_classifier = source_classifier
         self.regional_model_list = list() if regional_model_list is None else regional_model_list
         self.feature_cross_model = feature_cross_model
         self.feature_interactive_model = feature_interactive_model
@@ -62,7 +62,7 @@ class GlobalModel(object):
     def print_parameters(self, print_all=False):
         print("-" * 50)
         print("Global models:")
-        for name, param in self.classifier.named_parameters():
+        for name, param in self.source_classifier.named_parameters():
             # if param.requires_grad:
             print(f"{name}: {param.data}, {param.requires_grad}")
             # print(f"{name}: {param.requires_grad}")
@@ -83,7 +83,7 @@ class GlobalModel(object):
 
     def get_global_classifier_parameters(self, get_tensor=False):
         param_dict = dict()
-        for name, param in self.classifier.named_parameters():
+        for name, param in self.source_classifier.named_parameters():
             # print("----->", name, param, param.requires_grad)
             # if param.requires_grad:
             if get_tensor:
@@ -119,7 +119,7 @@ class GlobalModel(object):
 
         if load_global_classifier:
             global_classifier_path = task_meta_dict["global_part"]["classifier"]
-            self.classifier.load_state_dict(torch.load(global_classifier_path))
+            self.source_classifier.load_state_dict(torch.load(global_classifier_path))
             print(f"[INFO] load global classifier from {global_classifier_path}")
 
         # load global discriminator
@@ -176,7 +176,7 @@ class GlobalModel(object):
         model_meta["global_part"] = dict()
         model_meta["global_part"]["classifier"] = global_classifier_path
         model_meta["global_part"]["discriminator"] = global_discriminator_path
-        torch.save(self.classifier.state_dict(), global_classifier_path)
+        torch.save(self.source_classifier.state_dict(), global_classifier_path)
         if self.global_discriminator:
             torch.save(self.global_discriminator.state_dict(), global_discriminator_path)
             print(f"[INFO] saved global classifier model to: {global_classifier_path}")
@@ -215,7 +215,7 @@ class GlobalModel(object):
         return model_meta
 
     def freeze_top(self, is_freeze=False):
-        for param in self.classifier.parameters():
+        for param in self.source_classifier.parameters():
             param.requires_grad = not is_freeze
 
     def freeze_bottom(self, is_freeze=False, region_idx_list=None):
@@ -281,7 +281,7 @@ class GlobalModel(object):
         if self.feature_interactive_model: self.feature_interactive_model.check_discriminator_exists()
 
     def change_to_train_mode(self):
-        self.classifier.train()
+        self.source_classifier.train()
         for rg_model in self.regional_model_list:
             rg_model.change_to_train_mode()
         for embedding in self.embedding_dict.values():
@@ -289,7 +289,7 @@ class GlobalModel(object):
         if self.feature_interactive_model: self.feature_interactive_model.change_to_train_mode()
 
     def change_to_eval_mode(self):
-        self.classifier.eval()
+        self.source_classifier.eval()
         for rg_model in self.regional_model_list:
             rg_model.change_to_eval_mode()
         for embedding in self.embedding_dict.values():
@@ -297,7 +297,7 @@ class GlobalModel(object):
         if self.feature_interactive_model: self.feature_interactive_model.change_to_eval_mode()
 
     def parameters(self):
-        param_list = list(self.classifier.parameters())
+        param_list = list(self.source_classifier.parameters())
         for rg_model in self.regional_model_list:
             param_list += rg_model.parameters()
         for embedding in self.embedding_dict.values():
@@ -425,7 +425,7 @@ class GlobalModel(object):
         # print(f"[DEBUG] src_all_output_list shape:{len(src_all_output_list)}")
         # print(f"[DEBUG] tgt_all_output_list shape:{len(tgt_all_output_list)}")
         # print(f"[DEBUG] fed_output shape:{fed_output.shape}")
-        fed_prediction = self.classifier(fed_output)
+        fed_prediction = self.source_classifier(fed_output)
 
         # compute global classification loss
         if self.loss_name == "CE":
@@ -488,7 +488,7 @@ class GlobalModel(object):
 
     def compute_classification_loss(self, data, label):
         output = self.calculate_global_classifier_input_vector(data)
-        prediction = self.classifier(output)
+        prediction = self.source_classifier(output)
         if self.loss_name == "CE":
             label = label.flatten().long()
         else:
@@ -499,7 +499,7 @@ class GlobalModel(object):
 
     def calculate_classifier_correctness(self, data, label):
         output = self.calculate_global_classifier_input_vector(data)
-        pred = self.classifier(output)
+        pred = self.source_classifier(output)
         if self.loss_name == "CE":
             # using CrossEntropyLoss
             pred_prob = torch.softmax(pred.data, dim=1)

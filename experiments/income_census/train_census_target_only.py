@@ -1,6 +1,6 @@
 from datasets.census_dataloader import get_income_census_dataloaders
 from models.experiment_target_learner import FederatedTargetLearner
-from experiments.income_census.train_census_dann import create_global_model_model
+from experiments.income_census.train_census_fg_dann import create_global_model
 from experiments.income_census.train_census_target_test import test_classification
 
 if __name__ == "__main__":
@@ -8,7 +8,7 @@ if __name__ == "__main__":
     # dann_task_id = "2020530_001"
 
     # Load transferred models
-    wrapper = create_global_model_model()
+    wrapper = create_global_model()
 
     print("[DEBUG] Global classifier Model Parameter Before train:")
     wrapper.print_parameters()
