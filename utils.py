@@ -14,6 +14,7 @@ def get_latest_timestamp(timestamped_file_name, folder):
     for filename in os.listdir(folder):
         if filename.startswith(timestamped_file_name):
             maybe_timestamp = filename.split("_")[-1]
+            # print("[DEBUG] [get_latest_timestamp()] maybe_timestamp: ", maybe_timestamp)
             if maybe_timestamp.endswith(".json"):
                 timestamp = int(maybe_timestamp.split(".")[0])
             else:
@@ -33,7 +34,7 @@ def get_current_date():
 
 
 def save_dann_experiment_result(root, task_id, param_dict, metric_dict, timestamp):
-    task_folder = "task_" + task_id
+    task_folder = task_id
     task_root_folder = os.path.join(root, task_folder)
     if not os.path.exists(task_root_folder):
         os.makedirs(task_root_folder)
