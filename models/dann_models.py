@@ -93,7 +93,7 @@ class GlobalModel(object):
         return param_dict
 
     def load_model(self, root, task_id, task_meta_file_name="task_meta", load_global_classifier=True, timestamp=None):
-        task_folder = "task_" + task_id
+        task_folder = task_id
         task_folder_path = os.path.join(root, task_folder)
         if not os.path.exists(task_folder_path):
             raise FileNotFoundError(f"{task_folder_path} is not found.")
@@ -124,8 +124,9 @@ class GlobalModel(object):
 
         # load global discriminator
         global_discriminator_path = task_meta_dict["global_part"]["discriminator"]
-        self.global_discriminator.load_state_dict(torch.load(global_discriminator_path))
-        print(f"[INFO] load global discriminator from {global_discriminator_path}")
+        if self.global_discriminator:
+            self.global_discriminator.load_state_dict(torch.load(global_discriminator_path))
+            print(f"[INFO] load global discriminator from {global_discriminator_path}")
 
         # load embeddings
         embedding_meta_dict = task_meta_dict["global_part"]["embeddings"]
@@ -153,7 +154,7 @@ class GlobalModel(object):
         if timestamp is None:
             raise RuntimeError("timestamp is missing.")
 
-        task_folder = "task_" + task_id
+        task_folder = task_id
         task_root_folder = os.path.join(root, task_folder)
         if not os.path.exists(task_root_folder):
             os.makedirs(task_root_folder)
@@ -176,9 +177,10 @@ class GlobalModel(object):
         model_meta["global_part"]["classifier"] = global_classifier_path
         model_meta["global_part"]["discriminator"] = global_discriminator_path
         torch.save(self.classifier.state_dict(), global_classifier_path)
-        torch.save(self.global_discriminator.state_dict(), global_discriminator_path)
-        print(f"[INFO] saved global classifier model to: {global_classifier_path}")
-        print(f"[INFO] saved global discriminator model to: {global_discriminator_path}")
+        if self.global_discriminator:
+            torch.save(self.global_discriminator.state_dict(), global_discriminator_path)
+            print(f"[INFO] saved global classifier model to: {global_classifier_path}")
+            print(f"[INFO] saved global discriminator model to: {global_discriminator_path}")
 
         # save embeddings
         embedding_meta_dict = dict()
@@ -218,8 +220,9 @@ class GlobalModel(object):
 
     def freeze_bottom(self, is_freeze=False, region_idx_list=None):
         # freeze global discriminator model
-        for param in self.global_discriminator.parameters():
-            param.requires_grad = not is_freeze
+        if self.global_discriminator:
+            for param in self.global_discriminator.parameters():
+                param.requires_grad = not is_freeze
 
         # freeze region models
         if region_idx_list is None:
@@ -438,6 +441,7 @@ class GlobalModel(object):
         if apply_global_domain_adaption:
             print("[INFO] apply global domain adaption")
             alpha = kwargs["alpha"]
+            global_domain_adaption_lambda = kwargs["global_domain_adaption_lambda"]
             src_output = torch.cat(src_all_output_list, dim=1)
             tgt_output = torch.cat(tgt_all_output_list, dim=1)
             domain_feat = torch.cat((src_output, tgt_output), dim=0)
@@ -445,11 +449,9 @@ class GlobalModel(object):
             perm = torch.randperm(domain_feat.shape[0])
             domain_feat = domain_feat[perm]
             domain_labels = domain_labels[perm]
-            print(f"[DEBUG] domain_feat shape:{domain_feat.shape}")
-            print(f"[DEBUG] domain_labels shape:{domain_labels.shape}")
             domain_output = self.global_discriminator(domain_feat, alpha)
             global_domain_loss = self.discriminator_criterion(domain_output, domain_labels)
-            total_loss += global_domain_loss
+            total_loss += global_domain_adaption_lambda * global_domain_loss
 
         return total_loss
 
@@ -547,29 +549,38 @@ class RegionalModel(object):
         domain_discriminator = model_dict["domain_discriminator"]
         self.aggregator.load_state_dict(torch.load(feature_aggregator_path))
         self.extractor.load_state_dict(torch.load(feature_extractor))
-        self.discriminator.load_state_dict(torch.load(domain_discriminator))
         print(f"[INFO] load aggregator model from {feature_aggregator_path}")
         print(f"[INFO] load extractor model from {feature_extractor}")
-        print(f"[INFO] load discriminator model from {domain_discriminator}")
+
+        if self.discriminator_set:
+            self.discriminator.load_state_dict(torch.load(domain_discriminator))
+            print(f"[INFO] load discriminator model from {domain_discriminator}")
 
     def save_model(self, model_root, appendix):
         feature_aggregator_name = "feature_aggregator_" + str(appendix)
         feature_extractor_name = "feature_extractor_" + str(appendix)
-        domain_discriminator_name = "domain_discriminator_" + str(appendix)
+        # domain_discriminator_name = "domain_discriminator_" + str(appendix)
         feature_aggregator_path = os.path.join(model_root, feature_aggregator_name)
         feature_extractor_path = os.path.join(model_root, feature_extractor_name)
-        domain_discriminator_path = os.path.join(model_root, domain_discriminator_name)
+        # domain_discriminator_path = os.path.join(model_root, domain_discriminator_name)
         torch.save(self.aggregator.state_dict(), feature_aggregator_path)
         torch.save(self.extractor.state_dict(), feature_extractor_path)
-        torch.save(self.discriminator.state_dict(), domain_discriminator_path)
+        # torch.save(self.discriminator.state_dict(), domain_discriminator_path)
 
         task_meta = dict()
         task_meta["feature_aggregator"] = feature_aggregator_path
         task_meta["feature_extractor"] = feature_extractor_path
-        task_meta["domain_discriminator"] = domain_discriminator_path
+        # task_meta["domain_discriminator"] = domain_discriminator_path
         print(f"[INFO] saved aggregator model to: {feature_aggregator_path}")
         print(f"[INFO] saved extractor model to: {feature_extractor_path}")
-        print(f"[INFO] saved discriminator model to: {domain_discriminator_path}")
+
+        if self.discriminator_set:
+            domain_discriminator_name = "domain_discriminator_" + str(appendix)
+            domain_discriminator_path = os.path.join(model_root, domain_discriminator_name)
+            torch.save(self.discriminator.state_dict(), domain_discriminator_path)
+            task_meta["domain_discriminator"] = domain_discriminator_path
+            print(f"[INFO] saved discriminator model to: {domain_discriminator_path}")
+
         return task_meta
 
     def check_discriminator_exists(self):
