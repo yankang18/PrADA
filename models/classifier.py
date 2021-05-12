@@ -59,15 +59,11 @@ activation_fn = nn.LeakyReLU()
 # activation_fn = Mish()
 
 
-class CensusRegionAggregator(nn.Module):
-    def __init__(self, input_dim):
-        super(CensusRegionAggregator, self).__init__()
+class CensusFeatureAggregator(nn.Module):
+    def __init__(self, input_dim, output_dim=1):
+        super(CensusFeatureAggregator, self).__init__()
         self.aggregator = nn.Sequential(
-            nn.Linear(in_features=input_dim, out_features=1),
-            # activation_fn
-            # nn.Sigmoid()
-            # nn.LeakyReLU()
-            # nn.Tanh()
+            nn.Linear(in_features=input_dim, out_features=output_dim),
         )
 
         # self.aggregator.apply(init_weights)
