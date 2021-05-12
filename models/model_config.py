@@ -54,27 +54,28 @@ def create_region_model_list(input_dims_list, create_model_group_fn):
     create models for all regions that each represents a feature group.
     """
     wrapper_list = list()
-    for input_dim in input_dims_list:
-        wrapper_list.append(create_region_model(input_dim, create_model_group_fn))
+    for input_dims in input_dims_list:
+        wrapper_list.append(create_region_model(input_dims, create_model_group_fn))
     return wrapper_list
 
 
-def wire_global_model(embedding_dict,
-                      input_dims_list,
-                      num_wide_feature,
-                      using_feature_group,
-                      using_interaction,
-                      using_transform_matrix,
-                      partition_data_fn,
-                      create_model_group_fn,
-                      pos_class_weight=1.0):
+def wire_fg_dann_global_model(embedding_dict,
+                              feature_extractor_architecture_list,
+                              num_wide_feature,
+                              using_feature_group,
+                              using_interaction,
+                              using_transform_matrix,
+                              partition_data_fn,
+                              create_model_group_fn,
+                              pos_class_weight=1.0):
     """
     wire up all models together as a single model for end-to-end training
 
     parameters:
     ----------
     embedding_dict - the embedding dictionary,
-    input_dims_list - the neural network architecture for all feature groups (neural network has only dense layers),
+    feature_extractor_architecture_list - the neural network architecture for all feature groups (neural network
+    has only dense layers),
     num_wide_feature - the number of feature used in party A or party B,
     using_feature_group - whether apply feature group,
     using_interaction -  whether apply interactions among feature groups,
@@ -84,8 +85,8 @@ def wire_global_model(embedding_dict,
     """
 
     if using_feature_group:
-        print(f"[INFO] input_dims_list:{input_dims_list}, len:{len(input_dims_list)}")
-        region_model_list = create_region_model_list(input_dims_list, create_model_group_fn)
+        print(f"[INFO] input_dims_list:{feature_extractor_architecture_list}, len:{len(feature_extractor_architecture_list)}")
+        region_model_list = create_region_model_list(feature_extractor_architecture_list, create_model_group_fn)
     else:
         region_model_list = list()
     print(f"[INFO] region_model_list len:{len(region_model_list)}")
@@ -93,7 +94,9 @@ def wire_global_model(embedding_dict,
     interaction_model = None
     interactive_group_num = 0
     if using_interaction:
-        interaction_model = create_interaction_model(input_dims_list, create_model_group_fn, using_transform_matrix)
+        interaction_model = create_interaction_model(feature_extractor_architecture_list,
+                                                     create_model_group_fn,
+                                                     using_transform_matrix)
         interactive_group_num = interaction_model.get_num_feature_groups()
 
     global_discriminator_dim = len(region_model_list) + interactive_group_num
