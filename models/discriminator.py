@@ -82,39 +82,15 @@ class CensusRegionDiscriminator(nn.Module):
 
     def __init__(self, input_dim):
         super(CensusRegionDiscriminator, self).__init__()
-        # hidden_dim = int(input_dim * 1.5)
-        # self.discriminator = nn.Sequential(
-        #     nn.Linear(in_features=input_dim, out_features=hidden_dim),
-        #     nn.BatchNorm1d(hidden_dim),
-        #     nn.LeakyReLU(),
-        #     nn.Linear(in_features=hidden_dim, out_features=input_dim),
-        #     nn.BatchNorm1d(input_dim),
-        #     nn.LeakyReLU(),
-        #     nn.Linear(in_features=input_dim, out_features=2)
-        # )
-        # self.discriminator = nn.Sequential(
-        #     nn.Linear(in_features=input_dim, out_features=30),
-        #     nn.BatchNorm1d(30),
-        #     activation_fn,
-        #     nn.Linear(in_features=30, out_features=10),
-        #     nn.BatchNorm1d(10),
-        #     activation_fn,
-        #     nn.Linear(in_features=10, out_features=2)
-        # )
         self.discriminator = nn.Sequential(
             nn.utils.spectral_norm(nn.Linear(in_features=input_dim, out_features=24)),
-            # nn.Linear(in_features=input_dim, out_features=24),
             nn.BatchNorm1d(24),
             activation_fn,
             nn.Linear(in_features=24, out_features=10),
             nn.BatchNorm1d(10),
             activation_fn,
-            # nn.utils.spectral_norm(nn.Linear(in_features=10, out_features=2)),
             nn.Linear(in_features=10, out_features=2),
-            # nn.BatchNorm1d(2),
         )
-
-        # self.discriminator.apply(init_weights)
 
     def apply_discriminator(self, x):
         return self.discriminator(x)
@@ -123,18 +99,17 @@ class CensusRegionDiscriminator(nn.Module):
         reversed_input = GradientReverseFunction.apply(input, alpha)
         x = self.apply_discriminator(reversed_input)
         return x
-        # return F.softmax(x, dim=1)
 
 
 class LendingRegionDiscriminator(nn.Module):
 
-    def __init__(self, input_dim):
+    def __init__(self, input_dim, hidden_dim=50):
         super(LendingRegionDiscriminator, self).__init__()
         self.discriminator = nn.Sequential(
-            nn.Linear(in_features=input_dim, out_features=50),
-            # nn.BatchNorm1d(50),
+            nn.Linear(in_features=input_dim, out_features=hidden_dim),
+            # nn.BatchNorm1d(hidden_dim),
             activation_fn,
-            nn.Linear(in_features=50, out_features=10),
+            nn.Linear(in_features=hidden_dim, out_features=10),
             # nn.BatchNorm1d(10),
             activation_fn,
             nn.Linear(in_features=10, out_features=2)
