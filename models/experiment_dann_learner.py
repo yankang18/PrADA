@@ -119,7 +119,7 @@ class FederatedDAANLearner(object):
                         metric_dict = dict()
                         result_list = list()
                         for domain, val_loader in val_loader_dict.items():
-                            acc, auc, ks = test_classification(self.global_model, val_loader)
+                            acc, auc, ks = test_classification(self.global_model, val_loader, 'valid')
                             result_list.append(f"{domain} acc:{acc}, auc:{auc}, ks:{ks}")
                             metric_dict[domain + "_acc"] = acc
                             metric_dict[domain + "_auc"] = auc
@@ -176,14 +176,17 @@ class FederatedDAANLearner(object):
         print(f"[DEBUG] current epoch patience ratio:{epoch_patience_ratio:.1f}%")
         return epoch_patience_count
 
-    def train_dann(self, epochs, lr, task_id, metric=('ks', 'auc'), apply_global_domain_adaption=False):
+    def train_dann(self, epochs, lr, task_id, metric=('ks', 'auc'),
+                   apply_global_domain_adaption=False,
+                   global_domain_adaption_lambda=1.0,
+                   momentum=0.99,
+                   weight_decay=0.0001):
         self._check_exists()
 
         src_train_iter = ForeverDataIterator(self.src_train_loader)
         tgt_train_iter = ForeverDataIterator(self.tgt_train_loader)
 
-        optimizer = optim.SGD(self.global_model.parameters(), lr=lr, momentum=0.99, weight_decay=0.001)
-        # optimizer = optim.SGD(self.wrapper.parameters(), lr=lr, momentum=0.9, weight_decay=0.001)
+        optimizer = optim.SGD(self.global_model.parameters(), lr=lr, momentum=momentum, weight_decay=weight_decay)
 
         num_batches_per_epoch = len(src_train_iter)
         num_validations, valid_batch_interval = self.compute_number_validations(num_batches_per_epoch)
@@ -192,7 +195,7 @@ class FederatedDAANLearner(object):
         self.stop_training = False
         self.best_score = -float('inf')
         loss_list = []
-        auc_list = []
+        target_auc_list = []
         for ep in range(epochs):
             start_steps = ep * num_batches_per_epoch
             total_steps = self.max_epochs * num_batches_per_epoch
@@ -212,6 +215,7 @@ class FederatedDAANLearner(object):
                 kwargs = dict()
                 kwargs["alpha"] = alpha
                 kwargs["apply_global_domain_adaption"] = apply_global_domain_adaption
+                kwargs["global_domain_adaption_lambda"] = global_domain_adaption_lambda
                 total_loss = self.global_model.compute_total_loss(source_data,
                                                                   target_data,
                                                                   source_label,
@@ -249,10 +253,10 @@ class FederatedDAANLearner(object):
                               'val total dom acc: {:.6f}'.format(source_dom_acc, target_dom_acc, total_dom_acc))
                         print(f"[DEBUG] current lr: {curr_lr}")
                         print(f"[DEBUG] current alpha: {alpha}")
+                        target_auc_list.append(tgt_cls_auc)
 
                         metric_dict = {'acc': src_cls_acc, 'auc': src_cls_auc, 'ks': src_cls_ks}
                         # metric_dict = {'acc': tgt_cls_acc, 'auc': tgt_cls_auc, 'ks': tgt_cls_ks}
-                        auc_list.append(tgt_cls_auc)
                         score_list = [metric_dict[metric_name] for metric_name in metric]
                         score = sum(score_list) / len(score_list)
                         print(f"[DEBUG] *score: {score}")
@@ -275,7 +279,7 @@ class FederatedDAANLearner(object):
                             metric_dict["target_dom_acc"] = target_dom_acc
                             metric_dict["source_dom_acc_list"] = source_acc_list
                             metric_dict["target_dom_acc_list"] = target_acc_list
-                            metric_dict["target_batch_auc_list"] = auc_list
+                            metric_dict["target_batch_auc_list"] = target_auc_list
                             metric_dict["current_epoch"] = ep
                             metric_dict["current_batch_idx"] = batch_idx
                             metric_dict["num_batches_per_epoch"] = num_batches_per_epoch
@@ -303,4 +307,4 @@ class FederatedDAANLearner(object):
             if self.stop_training:
                 break
 
-        print("auc list:{}".format(auc_list))
+        print("auc list:{}".format(target_auc_list))
