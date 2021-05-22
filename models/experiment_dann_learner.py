@@ -4,7 +4,7 @@ import torch.optim as optim
 from torch.utils.data.dataloader import DataLoader
 
 from utils import get_timestamp, save_dann_experiment_result
-from utils import test_classification, test_discriminator
+from utils import test_classifier, test_discriminator
 # from models.wrapper_obsolete import Wrapper
 
 
@@ -39,9 +39,10 @@ class FederatedDAANLearner(object):
 
     def __init__(self,
                  model,
-                 source_train_loader,
+                 source_da_train_loader,
                  source_val_loader,
-                 target_train_loader=None,
+                 target_da_train_loader=None,
+                 target_clz_train_loader=None,
                  target_val_loader=None,
                  max_epochs=500,
                  epoch_patience=2,
@@ -49,11 +50,9 @@ class FederatedDAANLearner(object):
                  number_validations=None):
         self.global_model = model
         self.num_regions = self.global_model.get_num_regions()
-        print(f"num_regions:{self.num_regions}")
-        self.src_train_loader = source_train_loader
-        self.tgt_train_loader = target_train_loader
-        # self.src_train_iter = ForeverDataIterator(source_train_loader)
-        # self.tgt_train_iter = ForeverDataIterator(target_train_loader)
+        self.src_train_loader = source_da_train_loader
+        self.tgt_train_loader = target_da_train_loader
+        self.tgt_clz_train_loader = target_clz_train_loader
 
         self.src_val_loader = source_val_loader
         self.tgt_val_loader = target_val_loader
@@ -62,6 +61,7 @@ class FederatedDAANLearner(object):
         if self.src_val_loader: print(f"source_val_loader len: {len(self.src_val_loader)}")
         if self.tgt_train_loader: print(f"target_train_loader len: {len(self.tgt_train_loader)}")
         if self.tgt_val_loader: print(f"target_val_loader len: {len(self.tgt_val_loader)}")
+        if self.tgt_clz_train_loader: print(f"tgt_clz_train_loader len: {len(self.tgt_clz_train_loader)}")
 
         self.max_epochs = max_epochs
         self.epoch_patience = epoch_patience
@@ -90,9 +90,14 @@ class FederatedDAANLearner(object):
     def save_model(self, task_id, timestamp):
         self.global_model.save_model(self.root, task_id, self.task_meta_file_name, timestamp=timestamp)
 
-    def train_wo_adaption(self, epochs, lr, task_id, source=True):
-        optimizer = optim.SGD(self.global_model.parameters(), lr=lr, momentum=0.95, weight_decay=0.0001)
-        # optimizer = optim.Adam(self.global_model.parameters(), lr=lr, weight_decay=0.0001)
+    def train_wo_adaption(self,
+                          epochs,
+                          lr,
+                          task_id,
+                          source=True,
+                          metric=('ks', 'auc')):
+
+        optimizer = optim.SGD(self.global_model.parameters(), lr=lr, momentum=0.99, weight_decay=0.00001)
 
         train_loader = self.src_train_loader if source else self.tgt_train_loader
         num_batches_per_epoch = len(train_loader)
@@ -119,7 +124,7 @@ class FederatedDAANLearner(object):
                         metric_dict = dict()
                         result_list = list()
                         for domain, val_loader in val_loader_dict.items():
-                            acc, auc, ks = test_classification(self.global_model, val_loader, 'valid')
+                            acc, auc, ks = test_classifier(self.global_model, val_loader, 'valid')
                             result_list.append(f"{domain} acc:{acc}, auc:{auc}, ks:{ks}")
                             metric_dict[domain + "_acc"] = acc
                             metric_dict[domain + "_auc"] = auc
@@ -129,8 +134,12 @@ class FederatedDAANLearner(object):
                         result = ";".join(result_list)
                         print(f'[INFO] [{ep}/{epochs} ({batch_per_epoch:.0f}%)]\t loss:{class_loss.item()}\t' + result)
 
-                        if auc > self.best_score:
-                            self.best_score = auc
+                        metric_dict = {'acc': acc, 'auc': auc, 'ks': ks}
+                        score_list = [metric_dict[metric_name] for metric_name in metric]
+                        score = sum(score_list) / len(score_list)
+                        print(f"[DEBUG] *score: {score}")
+                        if score > self.best_score:
+                            self.best_score = score
                             print(f"best auc:{self.best_score}.")
                             param_dict = self.global_model.get_global_classifier_parameters()
                             timestamp = get_timestamp()
@@ -176,37 +185,67 @@ class FederatedDAANLearner(object):
         print(f"[DEBUG] current epoch patience ratio:{epoch_patience_ratio:.1f}%")
         return epoch_patience_count
 
-    def train_dann(self, epochs, lr, task_id, metric=('ks', 'auc'),
+    @staticmethod
+    def get_optimizer_params(optimizer_param_dict, optimizer_domain_tag):
+        lr = optimizer_param_dict[optimizer_domain_tag]["lr"]
+        momentum = optimizer_param_dict[optimizer_domain_tag]["momentum"]
+        weight_decay = optimizer_param_dict[optimizer_domain_tag]["weight_decay"]
+        return lr, momentum, weight_decay
+
+    def train_dann(self, epochs, task_id, metric=('ks', 'auc'),
                    apply_global_domain_adaption=False,
                    global_domain_adaption_lambda=1.0,
-                   momentum=0.99,
-                   weight_decay=0.0001):
+                   use_target_classifier=False,
+                   num_tgt_clz_train_iter=1,
+                   tgt_clz_interval=5,
+                   optimizer_param_dict=None,
+                   monitor_source=True):
         self._check_exists()
 
-        src_train_iter = ForeverDataIterator(self.src_train_loader)
-        tgt_train_iter = ForeverDataIterator(self.tgt_train_loader)
+        src_da_train_iter = ForeverDataIterator(self.src_train_loader)
+        tgt_da_train_iter = ForeverDataIterator(self.tgt_train_loader)
+        tgt_clz_train_iter = ForeverDataIterator(self.tgt_clz_train_loader) if self.tgt_clz_train_loader else None
+        num_tgt_clz_train_iter = num_tgt_clz_train_iter if num_tgt_clz_train_iter else len(tgt_clz_train_iter)
 
-        src_optimizer = optim.SGD(self.global_model.parameters(), lr=lr, momentum=momentum, weight_decay=weight_decay)
+        src_lr, src_momentum, src_weight_decay = self.get_optimizer_params(optimizer_param_dict, "src")
+        src_optimizer = optim.SGD(self.global_model.parameters(),
+                                  lr=src_lr,
+                                  momentum=src_momentum,
+                                  weight_decay=src_weight_decay)
 
-        num_batches_per_epoch = len(src_train_iter)
+        tgt_optimizer = None
+        if use_target_classifier:
+            print(f"[INFO] train tgt classifier {num_tgt_clz_train_iter} iterations every {tgt_clz_interval} batches.")
+            tgt_lr, tgt_momentum, tgt_weight_decay = self.get_optimizer_params(optimizer_param_dict, "tgt")
+            tgt_optimizer = optim.SGD(
+                # self.global_model.source_classifier_parameters(),
+                # self.global_model.parameters(),
+                # self.global_model.target_side_parameters(),
+                self.global_model.target_classifier_parameters(),
+                lr=tgt_lr,
+                momentum=tgt_momentum,
+                weight_decay=tgt_weight_decay)
+
+        num_batches_per_epoch = len(src_da_train_iter)
         num_validations, valid_batch_interval = self.compute_number_validations(num_batches_per_epoch)
 
         validation_patience_count = 0
         self.stop_training = False
         self.best_score = -float('inf')
-        loss_list = []
         target_auc_list = []
         for ep in range(epochs):
             start_steps = ep * num_batches_per_epoch
             total_steps = self.max_epochs * num_batches_per_epoch
             for batch_idx in range(num_batches_per_epoch):
                 self._change_to_train_mode()
-                source_data, source_label = next(src_train_iter)
-                target_data, target_label = next(tgt_train_iter)
+                source_data, source_label = next(src_da_train_iter)
+                target_data, target_label = next(tgt_da_train_iter)
 
                 p = float(batch_idx + start_steps) / total_steps
                 alpha = 2. / (1. + np.exp(-10 * p)) - 1
-                curr_lr = adjust_learning_rate(src_optimizer, p, lr_0=lr)
+                curr_lr = adjust_learning_rate(src_optimizer, p, lr_0=src_lr)
+
+                print(f"[DEBUG] alpha:{alpha}")
 
                 # source has domain label of zero, while target has domain label of one
                 domain_source_labels = torch.zeros(source_label.shape[0]).long()
@@ -216,28 +255,68 @@ class FederatedDAANLearner(object):
                 kwargs["alpha"] = alpha
                 kwargs["apply_global_domain_adaption"] = apply_global_domain_adaption
                 kwargs["global_domain_adaption_lambda"] = global_domain_adaption_lambda
-                total_loss = self.global_model.compute_total_loss(source_data,
-                                                                  target_data,
-                                                                  source_label,
-                                                                  domain_source_labels,
-                                                                  domain_target_labels,
-                                                                  **kwargs)
+                # kwargs["apply_target_classification"] = use_target_classifier
+                loss_dict = self.global_model.compute_total_loss(source_data,
+                                                                 target_data,
+                                                                 source_label,
+                                                                 target_label,
+                                                                 domain_source_labels,
+                                                                 domain_target_labels,
+                                                                 **kwargs)
 
                 # back-propagation and optimization
+                total_loss = loss_dict["src_total_loss"]
                 total_loss.backward()
                 src_optimizer.step()
                 src_optimizer.zero_grad()
+
+                if use_target_classifier:
+                    class_loss = self.global_model.compute_classification_loss(target_data,
+                                                                               target_label,
+                                                                               use_source_classifier=True)
+                    class_loss.backward()
+                    tgt_optimizer.step()
+                    tgt_optimizer.zero_grad()
+
+                # if use_target_classifier:
+                #     if (batch_idx + 1) % tgt_clz_interval == 0:
+                #         # for i in range(num_tgt_clz_train_iter):
+                #         #     target_clz_data, target_clz_label = next(tgt_clz_train_iter)
+                #         #     class_loss = self.global_model.compute_classification_loss(target_clz_data,
+                #         #                                                                target_clz_label,
+                #         #                                                                use_source_classifier=True)
+                #         #     class_loss.backward()
+                #         #     tgt_optimizer.step()
+                #         #     tgt_optimizer.zero_grad()
+                #
+                #         print("[INFO] finish target classifier")
+                #         self.global_model.freeze_bottom(True)
+                #         self.global_model.freeze_source_classifier(True)
+                #         # print(f"[DEBUG] train target classifier for batch idx {batch_idx}, {len(tgt_clz_train_iter)}")
+                #         for i in range(num_tgt_clz_train_iter):
+                #             target_clz_data, target_clz_label = next(tgt_clz_train_iter)
+                #             class_loss = self.global_model.compute_classification_loss(target_clz_data,
+                #                                                                        target_clz_label,
+                #                                                                        use_source_classifier=False)
+                #             class_loss.backward()
+                #             tgt_optimizer.step()
+                #             tgt_optimizer.zero_grad()
+                #         self.global_model.freeze_bottom(False)
+                #         self.global_model.freeze_source_classifier(False)
 
                 with torch.no_grad():
                     if (batch_idx + 1) % valid_batch_interval == 0:
                         print("-" * 50)
                         self._change_to_eval_mode()
-                        src_cls_acc, src_cls_auc, src_cls_ks = test_classification(self.global_model,
-                                                                                   self.src_val_loader,
-                                                                                   "test source")
-                        tgt_cls_acc, tgt_cls_auc, tgt_cls_ks = test_classification(self.global_model,
-                                                                                   self.tgt_val_loader,
-                                                                                   "test target")
+                        src_cls_acc, src_cls_auc, src_cls_ks = test_classifier(model=self.global_model,
+                                                                               data_loader=self.src_val_loader,
+                                                                               tag="test source",
+                                                                               use_src_classifier=True)
+                        tgt_cls_acc, tgt_cls_auc, tgt_cls_ks = test_classifier(model=self.global_model,
+                                                                               data_loader=self.tgt_val_loader,
+                                                                               tag="test target",
+                                                                               use_src_classifier=True)
+                                                                               # use_src_clz=not use_target_classifier)
                         ave_dom_acc, dom_acc_list = test_discriminator(self.global_model, self.num_regions,
                                                                        self.src_val_loader,
                                                                        self.tgt_val_loader)
@@ -255,8 +334,10 @@ class FederatedDAANLearner(object):
                         print(f"[DEBUG] current alpha: {alpha}")
                         target_auc_list.append(tgt_cls_auc)
 
-                        metric_dict = {'acc': src_cls_acc, 'auc': src_cls_auc, 'ks': src_cls_ks}
-                        # metric_dict = {'acc': tgt_cls_acc, 'auc': tgt_cls_auc, 'ks': tgt_cls_ks}
+                        if monitor_source:
+                            metric_dict = {'acc': src_cls_acc, 'auc': src_cls_auc, 'ks': src_cls_ks}
+                        else:
+                            metric_dict = {'acc': tgt_cls_acc, 'auc': tgt_cls_auc, 'ks': tgt_cls_ks}
                         score_list = [metric_dict[metric_name] for metric_name in metric]
                         score = sum(score_list) / len(score_list)
                         print(f"[DEBUG] *score: {score}")
