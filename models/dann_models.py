@@ -39,11 +39,21 @@ def compute_feature_crossing(feature_cross_model, feature_group_list):
 
 
 class GlobalModel(object):
-    def __init__(self, source_classifier, regional_model_list, embedding_dict, partition_data_fn, beta=1.0,
-                 pos_class_weight=1.0, loss_name="CE", feature_cross_model=None, feature_interactive_model=None,
+    def __init__(self,
+                 source_classifier,
+                 target_classifier,
+                 regional_model_list,
+                 embedding_dict,
+                 partition_data_fn,
+                 beta=1.0,
+                 pos_class_weight=1.0,
+                 loss_name="CE",
+                 feature_cross_model=None,
+                 feature_interactive_model=None,
                  discriminator=None):
         self.global_discriminator = discriminator
         self.source_classifier = source_classifier
+        self.target_classifier = target_classifier
         self.regional_model_list = list() if regional_model_list is None else regional_model_list
         self.feature_cross_model = feature_cross_model
         self.feature_interactive_model = feature_interactive_model
@@ -214,7 +224,7 @@ class GlobalModel(object):
 
         return model_meta
 
-    def freeze_top(self, is_freeze=False):
+    def freeze_source_classifier(self, is_freeze=False):
         for param in self.source_classifier.parameters():
             param.requires_grad = not is_freeze
 
@@ -282,6 +292,8 @@ class GlobalModel(object):
 
     def change_to_train_mode(self):
         self.source_classifier.train()
+        if self.target_classifier:
+            self.target_classifier.train()
         for rg_model in self.regional_model_list:
             rg_model.change_to_train_mode()
         for embedding in self.embedding_dict.values():
@@ -290,6 +302,8 @@ class GlobalModel(object):
 
     def change_to_eval_mode(self):
         self.source_classifier.eval()
+        if self.target_classifier:
+            self.target_classifier.eval()
         for rg_model in self.regional_model_list:
             rg_model.change_to_eval_mode()
         for embedding in self.embedding_dict.values():
@@ -305,6 +319,24 @@ class GlobalModel(object):
         if self.feature_interactive_model:
             param_list += self.feature_interactive_model.parameters()
         return param_list
+
+    def target_side_parameters(self):
+        param_list = list(self.target_classifier.parameters())
+        for rg_model in self.regional_model_list:
+            param_list += rg_model.parameters()
+        for embedding in self.embedding_dict.values():
+            param_list += embedding.parameters()
+        if self.feature_interactive_model:
+            param_list += self.feature_interactive_model.parameters()
+        return param_list
+
+    def source_classifier_parameters(self):
+        return list(self.source_classifier.parameters())
+
+    def target_classifier_parameters(self):
+        if self.target_classifier:
+            return list(self.target_classifier.parameters())
+        return None
 
     def _combine_features(self, feat_dict):
         """
@@ -383,7 +415,10 @@ class GlobalModel(object):
 
         return total_domain_loss, src_output_list, tgt_output_list
 
-    def compute_total_loss(self, source_data, target_data, source_label, domain_source_labels, domain_target_labels,
+    def compute_total_loss(self,
+                           source_data, target_data,
+                           source_label, target_label,
+                           domain_source_labels, domain_target_labels,
                            **kwargs):
 
         src_wide_list, src_deep_par_list = self.partition_data_fn(source_data)
@@ -421,20 +456,20 @@ class GlobalModel(object):
         tgt_all_output_list += tgt_output_list
 
         src_fed_output_list = src_wide_list + src_all_output_list if len(src_wide_list) > 0 else src_all_output_list
-        fed_output = torch.cat(src_fed_output_list, dim=1)
+        src_fed_output = torch.cat(src_fed_output_list, dim=1)
         # print(f"[DEBUG] src_all_output_list shape:{len(src_all_output_list)}")
         # print(f"[DEBUG] tgt_all_output_list shape:{len(tgt_all_output_list)}")
-        # print(f"[DEBUG] fed_output shape:{fed_output.shape}")
-        fed_prediction = self.source_classifier(fed_output)
+        # print(f"[DEBUG] src_fed_output shape:{src_fed_output.shape}")
+        src_fed_prediction = self.source_classifier(src_fed_output)
 
         # compute global classification loss
         if self.loss_name == "CE":
             source_label = source_label.flatten().long()
         else:
             # using BCELogitLoss
-            source_label = source_label.reshape(-1, 1).type_as(fed_prediction)
-        class_loss = self.classifier_criterion(fed_prediction, source_label)
-        total_loss = class_loss + self.beta * region_domain_loss
+            source_label = source_label.reshape(-1, 1).type_as(src_fed_prediction)
+        src_class_loss = self.classifier_criterion(src_fed_prediction, source_label)
+        src_total_loss = src_class_loss + self.beta * region_domain_loss
 
         # compute global domain adaption loss
         apply_global_domain_adaption = kwargs["apply_global_domain_adaption"]
@@ -451,9 +486,18 @@ class GlobalModel(object):
             domain_labels = domain_labels[perm]
             domain_output = self.global_discriminator(domain_feat, alpha)
             global_domain_loss = self.discriminator_criterion(domain_output, domain_labels)
-            total_loss += global_domain_adaption_lambda * global_domain_loss
+            src_total_loss += global_domain_adaption_lambda * global_domain_loss
 
-        return total_loss
+        # apply_target_classification = kwargs["apply_target_classification"]
+        # tgt_class_loss = None
+        # if apply_target_classification:
+        #     tgt_fed_output_list = tgt_wide_list + tgt_all_output_list if len(tgt_wide_list) > 0 else tgt_all_output_list
+        #     tgt_fed_output = torch.cat(tgt_fed_output_list, dim=1)
+        #     tgt_fed_prediction = self.target_classifier(tgt_fed_output)
+        #     target_label = target_label.reshape(-1, 1).type_as(tgt_fed_prediction)
+        #     tgt_class_loss = self.classifier_criterion(tgt_fed_prediction, target_label)
+        # return {"src_total_loss": src_total_loss, "tgt_class_loss": tgt_class_loss}
+        return {"src_total_loss": src_total_loss}
 
     def _calculate_feature_group_output_list(self, deep_par_list):
         # print("=" * 30)
@@ -486,9 +530,9 @@ class GlobalModel(object):
         output = torch.cat(output_list, dim=1)
         return output
 
-    def compute_classification_loss(self, data, label):
+    def compute_classification_loss(self, data, label, use_source_classifier=True):
         output = self.calculate_global_classifier_input_vector(data)
-        prediction = self.source_classifier(output)
+        prediction = self.source_classifier(output) if use_source_classifier else self.target_classifier(output)
         if self.loss_name == "CE":
             label = label.flatten().long()
         else:
@@ -497,17 +541,17 @@ class GlobalModel(object):
         class_loss = self.classifier_criterion(prediction, label)
         return class_loss
 
-    def calculate_classifier_correctness(self, data, label):
+    def calculate_classifier_correctness(self, data, label, use_source_classifier=True):
         output = self.calculate_global_classifier_input_vector(data)
-        pred = self.source_classifier(output)
+        prediction = self.source_classifier(output) if use_source_classifier else self.target_classifier(output)
         if self.loss_name == "CE":
             # using CrossEntropyLoss
-            pred_prob = torch.softmax(pred.data, dim=1)
+            pred_prob = torch.softmax(prediction.data, dim=1)
             pos_prob = pred_prob[:, 1]
             y_pred_tag = pred_prob.max(1)[1]
         else:
             # using BCELogitLoss
-            pos_prob = torch.sigmoid(pred.flatten())
+            pos_prob = torch.sigmoid(prediction.flatten())
             y_pred_tag = torch.round(pos_prob).long()
 
         correct_results_sum = y_pred_tag.eq(label).sum().item()
@@ -629,11 +673,8 @@ class RegionalModel(object):
         return list(self.aggregator.parameters())
 
     def compute_output(self, data):
-        # print("@@@ input data:", data, data.shape)
         batch_feat = self.extractor(data)
-        # print("@@@ batch_feat:", batch_feat, batch_feat.shape)
         output = self.aggregator(batch_feat)
-        # print("@@@ output:", output, output.shape)
         return output
 
     def compute_loss(self, source_data, target_data, domain_source_labels, domain_target_labels, **kwargs):
