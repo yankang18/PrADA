@@ -2,7 +2,7 @@ import torch
 import torch.optim as optim
 
 from models.experiment_dann_learner import adjust_learning_rate
-from utils import get_timestamp, test_classification, save_dann_experiment_result
+from utils import get_timestamp, test_classifier, save_dann_experiment_result
 
 
 class FederatedTargetLearner(object):
@@ -77,9 +77,9 @@ class FederatedTargetLearner(object):
                     if (batch_idx + 1) % 5 == 0:
                         # if (batch_idx) % 1 == 0:
                         self._change_to_eval_mode()
-                        tgt_cls_acc, tgt_cls_auc, tgt_cls_ks = test_classification(self.model,
-                                                                                   self.target_val_loader,
-                                                                                   "test target")
+                        tgt_cls_acc, tgt_cls_auc, tgt_cls_ks = test_classifier(self.model,
+                                                                               self.target_val_loader,
+                                                                               "test target")
                         batch_per_epoch = 100. * batch_idx / len(self.target_train_loader)
                         print(f'[INFO] [{curr_global_epoch}/{global_epochs}]\t [{ep}/{epochs} ({batch_per_epoch:.0f}%)]'
                               f'\t loss:{class_loss}\t val target acc: {tgt_cls_acc:.6f}')
@@ -159,7 +159,7 @@ class FederatedTargetLearner(object):
         if dann_exp_result:
             print("[DEBUG] apply DANN lr parameters")
             self.get_weight_constraints(dann_exp_result)
-            optimizer = optim.SGD(self.model.parameters(), lr=lr, momentum=0.90)
+            optimizer = optim.SGD(self.model.parameters(), lr=lr, momentum=0.99)
         else:
             print("[DEBUG] Do not apply DANN lr parameters")
             optimizer = optim.SGD(self.model.parameters(), lr=lr, momentum=0.99, weight_decay=weight_decay)
@@ -177,7 +177,7 @@ class FederatedTargetLearner(object):
         for ep in range(global_epochs):
 
             print(f"[INFO] ===> global epoch {ep}, start fine-tuning top")
-            self.model.freeze_top(is_freeze=False)
+            self.model.freeze_source_classifier(is_freeze=False)
             self.model.freeze_bottom(is_freeze=True)
             loss_list += self.train_target_models(top_epochs, optimizer, curr_lr,
                                                   train_bottom_only=True,
@@ -186,7 +186,7 @@ class FederatedTargetLearner(object):
                                                   metric=metric)
 
             print(f"[INFO] ===> global epoch {ep}, start fine-tuning bottom")
-            self.model.freeze_top(is_freeze=False)
+            self.model.freeze_source_classifier(is_freeze=False)
             self.model.freeze_bottom(is_freeze=True)
             loss_list += self.train_target_models(bottom_epochs, optimizer, curr_lr,
                                                   curr_global_epoch=ep,
