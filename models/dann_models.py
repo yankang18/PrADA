@@ -500,13 +500,12 @@ class GlobalModel(object):
         return {"src_total_loss": src_total_loss}
 
     def _calculate_feature_group_output_list(self, deep_par_list):
-        # print("=" * 30)
         fg_list = []
         for fg_data in deep_par_list:
             fg_list.append(self._combine_features(fg_data))
 
         output_list = None if self.is_regional_model_list_empty() is True \
-            else [regional_model.compute_output(fg) for regional_model, fg in
+            else [regional_model.compute_aggregated_output(fg) for regional_model, fg in
                   zip(self.regional_model_list, fg_list)]
 
         # compute output from feature interaction model that wraps feature interactions
@@ -514,6 +513,16 @@ class GlobalModel(object):
             else self.feature_interactive_model.compute_output_list(fg_list)
 
         return output_list, fgi_output_list
+
+    def calculate_feature_group_embedding_list(self, data):
+        _, deep_par_list = self.partition_data_fn(data)
+        fg_list = []
+        for fg_data in deep_par_list:
+            fg_list.append(self._combine_features(fg_data))
+
+        output_list = [regional_model.compute_feature_group_embedding(fg) for regional_model, fg in
+                       zip(self.regional_model_list, fg_list)]
+        return output_list
 
     def calculate_global_classifier_input_vector(self, data):
         wide_list, deep_par_list = self.partition_data_fn(data)
@@ -672,10 +681,13 @@ class RegionalModel(object):
     def aggregator_parameters(self):
         return list(self.aggregator.parameters())
 
-    def compute_output(self, data):
+    def compute_aggregated_output(self, data):
         batch_feat = self.extractor(data)
         output = self.aggregator(batch_feat)
         return output
+
+    def compute_feature_group_embedding(self, data):
+        return self.extractor(data)
 
     def compute_loss(self, source_data, target_data, domain_source_labels, domain_target_labels, **kwargs):
         alpha = kwargs["alpha"]
