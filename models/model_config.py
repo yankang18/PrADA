@@ -85,7 +85,8 @@ def wire_fg_dann_global_model(embedding_dict,
     """
 
     if using_feature_group:
-        print(f"[INFO] input_dims_list:{feature_extractor_architecture_list}, len:{len(feature_extractor_architecture_list)}")
+        print(f"[INFO] feature_extractor_architecture_list:{feature_extractor_architecture_list}, "
+              f"len:{len(feature_extractor_architecture_list)}")
         region_model_list = create_region_model_list(feature_extractor_architecture_list, create_model_group_fn)
     else:
         region_model_list = list()
@@ -105,9 +106,14 @@ def wire_fg_dann_global_model(embedding_dict,
     print(f"[INFO] global_input_dim length:{global_input_dim}")
     print(f"[INFO] global_discriminator_dim length:{global_discriminator_dim}")
 
-    global_classifier = GlobalClassifier(input_dim=global_input_dim)
+    source_classifier = GlobalClassifier(input_dim=global_input_dim)
+    target_classifier = GlobalClassifier(input_dim=global_input_dim)
     global_discriminator = GlobalDiscriminator(input_dim=global_discriminator_dim)
-    global_model = GlobalModel(global_classifier, region_model_list, embedding_dict, partition_data_fn,
+    global_model = GlobalModel(source_classifier=source_classifier,
+                               target_classifier=target_classifier,
+                               regional_model_list=region_model_list,
+                               embedding_dict=embedding_dict,
+                               partition_data_fn=partition_data_fn,
                                feature_interactive_model=interaction_model,
                                pos_class_weight=pos_class_weight,
                                loss_name="BCE",

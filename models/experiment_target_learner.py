@@ -163,7 +163,6 @@ class FederatedTargetLearner(object):
         else:
             print("[DEBUG] Do not apply DANN lr parameters")
             optimizer = optim.SGD(self.model.parameters(), lr=lr, momentum=0.99, weight_decay=weight_decay)
-            # optimizer = optim.SGD(self.model.parameters(), lr=lr, momentum=0.99)
 
         curr_lr = lr
         # step_lr = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.95)
