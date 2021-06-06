@@ -6,6 +6,10 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, roc_auc_score
 import os
 import json
+from xgboost import XGBClassifier
+from sklearn.model_selection import GridSearchCV
+from sklearn.metrics import make_scorer
+from sklearn.metrics import roc_auc_score, roc_curve
 
 
 def show_metrics(test_label, pred_label, pred_prob_label):
@@ -31,8 +35,10 @@ def find_args_for_best_metric(result_list, model_name='xgb', metric_name='auc'):
     best_arg = None
     for result in result_list:
         tmp_auc = result[1][model_name][metric_name]
-        if tmp_auc > best_metric:
-            best_metric = tmp_auc
+        tmp_ks = result[1][model_name]["ks"]
+        temp_score = (tmp_auc + tmp_ks) / 2
+        if temp_score > best_metric:
+            best_metric = temp_score
             best_arg = result[0]
     return best_metric, best_arg
 
@@ -48,9 +54,13 @@ def prepare_models(kwargs):
                   'feature_fraction': 0.7, 'bagging_fraction': 0.72, 'bagging_freq': 3, 'max_depth': max_depth,
                   'min_child_samples': 10}
 
+    # xgb_params = {'booster': 'gbtree', 'lambda': 0.01, 'alpha': 0.01, 'n_estimators': n_tree_estimators,
+    #               'eta': 0.05, 'gamma': 0.34, 'grow_policy': 'lossguide', 'max_depth': max_depth,
+    #               'feature_fraction': 0.7, 'bagging_fraction': 0.72, 'bagging_freq': 3, 'min_child_samples': 10}
+
     xgb_params = {'booster': 'gbtree', 'lambda': 0.01, 'alpha': 0.01, 'n_estimators': n_tree_estimators,
-                  'eta': 0.05, 'gamma': 0.34, 'grow_policy': 'lossguide', 'max_depth': max_depth,
-                  'feature_fraction': 0.7, 'bagging_fraction': 0.72, 'bagging_freq': 3, 'min_child_samples': 10}
+                  'max_depth': max_depth, 'eta': 0.05, 'gamma': 0.34, 'grow_policy': 'lossguide',
+                  'feature_fraction': 0.7, 'subsample': 0.72}
 
     model_dict = {
         "lr": LogisticRegression(),
