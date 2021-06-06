@@ -5,23 +5,6 @@ from sklearn.utils import shuffle
 from data_process.benchmark_utils import run_benchmark, save_benchmark_result, find_args_for_best_metric
 from data_process.census_process.mapping_resource import continuous_cols, categorical_cols, target_col_name
 
-# COLUMNS = ['age',
-#            'education_year',
-#            'hours_per_week',
-#            'capital_gain',
-#            'capital_loss',
-#            'age_bucket',
-#            'marital_status',
-#            'relationship',
-#            'gender',
-#            # 'native_country',
-#            'race',
-#            'workclass',
-#            'occupation',
-#            'education',
-#            'is_asian',
-#            "income_label"]
-
 COLUMNS = ['age',
            'education_year',
            # 'hours_per_week',
@@ -40,24 +23,7 @@ COLUMNS = ['age',
            "income_label"]
 
 
-# COLUMNS_TO_LOAD = ['age',                 # 0
-#                    'education_year',      # 1
-#                    'capital_gain',        # 2
-#                    'capital_loss',        # 3
-#                    'age_bucket',          # 4
-#                    'marital_status',      # 5
-#                    'gender',              # 6
-#                    'native_country',      # 7
-#                    'race',                # 8
-#                    'workclass',           # 9
-#                    'occupation',          # 10
-#                    'education',           # 11
-#                    # "hours_per_week",      # 12
-#                    # "relationship",        # 13
-#                    "income_label"]
-
-
-def train_benchmark(samples_train, samples_test):
+def train_benchmark(samples_train, samples_test, tag):
     train_data, train_label = samples_train[:, :-1], samples_train[:, -1]
     test_data, test_label = samples_test[:, :-1], samples_test[:, -1]
 
@@ -65,6 +31,7 @@ def train_benchmark(samples_train, samples_test):
     print(f"[INFO] train_label shape:{train_label.shape}， {np.sum(train_label)}")
     print(f"[INFO] test_data shape:{test_data.shape}")
     print(f"[INFO] test_label shape:{test_label.shape}， {np.sum(test_label)}")
+
     n_tree_list = [200, 250, 300, 350, 400]
     # max_depth_list = [2, 4, 6, 8]
     max_depth_list = [2, 4]
@@ -81,7 +48,7 @@ def train_benchmark(samples_train, samples_test):
 
     best_auc, best_arg = find_args_for_best_metric(result_list, model_name='xgb', metric_name='auc')
 
-    file_name = "income_benchmark_result"
+    file_name = "income_benchmark_result_" + tag
     result_dict = dict()
     result_dict["income_benchmark_result"] = result_list
     result_dict['best_result'] = {'xgb': {'best_auc': best_auc, "best_arg": best_arg}}
@@ -206,28 +173,59 @@ def train_on_dann(file_dict, columns=None):
         adult_target_train = adult_target_train[columns]
         adult_target_test = adult_target_test[columns]
 
-    print(f"source_train shape:{adult_source_train.shape}")
-    print(f"target_train shape:{adult_target_train.shape}")
-    print(f"target_test shape:{adult_target_test.shape}")
+    src_train_num = adult_source_train.shape[0]
+    tgt_train_num = adult_target_train.shape[0]
+    tgt_test_num = adult_target_test.shape[0]
+
+    src_train_pos_num = adult_source_train[adult_source_train['income_label'] == 1].shape[0]
+    tgt_train_pos_num = adult_target_train[adult_target_train['income_label'] == 1].shape[0]
+    tgt_test_pos_num = adult_target_test[adult_target_test['income_label'] == 1].shape[0]
+
+    src_train_pos_ratio = src_train_pos_num / src_train_num
+    tgt_train_pos_ratio = tgt_train_pos_num / tgt_train_num
+    tgt_test_pos_ratio = tgt_test_pos_num / tgt_test_num
+
+    src_train_neg_num = adult_source_train[adult_source_train['income_label'] == 0].shape[0]
+    tgt_train_neg_num = adult_target_train[adult_target_train['income_label'] == 0].shape[0]
+    tgt_test_neg_num = adult_target_test[adult_target_test['income_label'] == 0].shape[0]
+
+    print(
+        f"source_train shape:{src_train_num}, pos:{src_train_pos_num}({src_train_pos_ratio}), neg:{src_train_neg_num}")
+    print(
+        f"target_train shape:{tgt_train_num}, pos:{tgt_train_pos_num}({tgt_train_pos_ratio}), neg:{tgt_train_neg_num}")
+    print(f"target_test shape:{tgt_test_num}, pos:{tgt_test_pos_num}({tgt_test_pos_ratio}), neg:{tgt_test_neg_num}")
 
     adult_target_train = adult_target_train.values
     adult_target_test = adult_target_test.values
     adult_target_train = shuffle(adult_target_train)
     adult_target_test = shuffle(adult_target_test)
 
-    # print("=========================================")
-    # print("====== train model only on target =======")
-    # print("=========================================")
-    # train_benchmark(adult_target_train, adult_target_test)
-    # print('\n')
-    # print('\n')
+    print("====== train model only on local target =======")
+    tgt_train_label = adult_target_train.values[:, -1].reshape(-1, 1)
+    tgt_test_label = adult_target_test.values[:, -1].reshape(-1, 1)
+    local_target_train_data = np.concatenate([adult_target_train[continuous_cols].values, tgt_train_label], axis=1)
+    local_target_test_data = np.concatenate([adult_target_test[continuous_cols].values, tgt_test_label], axis=1)
+    print(f"local_target_train_data shape:{local_target_train_data.shape}")
+    print(f"local_target_test_data shape:{local_target_test_data.shape}")
+    tag = "local"
+    local_train_data = shuffle(local_target_train_data)
+    local_test_data = shuffle(local_target_test_data)
+    train_benchmark(local_train_data, local_test_data, tag)
+    print('\n')
+    print("=========================================")
+    print("====== train model only on target =======")
+    print("=========================================")
+    tag = "tgt"
+    train_benchmark(adult_target_train, adult_target_test, tag)
+    print('\n')
     print("=========================================")
     print("====== train model on src + tgt =========")
     print("=========================================")
+    tag = "src_tgt"
     adult_source_train = adult_source_train.values
     adult_all_train = np.concatenate([adult_source_train, adult_target_train], axis=0)
     adult_all_train = shuffle(adult_all_train)
-    train_benchmark(adult_all_train, adult_target_test)
+    train_benchmark(adult_all_train, adult_target_test, tag)
 
 
 def train_adult():
@@ -310,7 +308,7 @@ if __name__ == "__main__":
     data_dir = "/Users/yankang/Documents/Data/census/output/"
 
     columns_list = continuous_cols + categorical_cols + [target_col_name]
-    print("columns_list:", len(columns_list), columns_list)
+    print("[INFO] columns_list:", len(columns_list), columns_list)
 
     file_dict = dict()
     file_dict['source_train_file'] = source_train_file
