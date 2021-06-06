@@ -94,15 +94,16 @@ class FederatedDAANLearner(object):
                           epochs,
                           lr,
                           task_id,
-                          source=True,
+                          train_source=True,
+                          valid_source=True,
                           metric=('ks', 'auc')):
 
         optimizer = optim.SGD(self.global_model.parameters(), lr=lr, momentum=0.99, weight_decay=0.00001)
 
-        train_loader = self.src_train_loader if source else self.tgt_train_loader
+        train_loader = self.src_train_loader if train_source else self.tgt_train_loader
         num_batches_per_epoch = len(train_loader)
         num_validations, valid_batch_interval = self.compute_number_validations(num_batches_per_epoch)
-        val_loader_dict = {"src": self.src_val_loader, "tgt": self.tgt_val_loader} if source else {
+        val_loader_dict = {"src": self.src_val_loader, "tgt": self.tgt_val_loader} if train_source else {
             "tgt": self.tgt_val_loader}
 
         validation_patience_count = 0
@@ -125,17 +126,16 @@ class FederatedDAANLearner(object):
                         result_list = list()
                         for domain, val_loader in val_loader_dict.items():
                             acc, auc, ks = test_classifier(self.global_model, val_loader, 'valid')
-                            result_list.append(f"{domain} acc:{acc}, auc:{auc}, ks:{ks}")
-                            metric_dict[domain + "_acc"] = acc
-                            metric_dict[domain + "_auc"] = auc
-                            metric_dict[domain + "_ks"] = ks
+                            result_list.append(f"{domain} - acc:{acc}, auc:{auc}, ks:{ks} \n")
+                            metric_dict[domain] = {'acc': acc, 'auc': auc, 'ks': ks}
 
                         batch_per_epoch = 100. * batch_idx / num_batches_per_epoch
                         result = ";".join(result_list)
-                        print(f'[INFO] [{ep}/{epochs} ({batch_per_epoch:.0f}%)]\t loss:{class_loss.item()}\t' + result)
+                        print(f'[INFO] [{ep}/{epochs} ({batch_per_epoch:.0f}%)]\t loss:{class_loss.item()}\t')
+                        print(f"[INFO] {result}")
 
-                        metric_dict = {'acc': acc, 'auc': auc, 'ks': ks}
-                        score_list = [metric_dict[metric_name] for metric_name in metric]
+                        valid_metrics = metric_dict['src'] if valid_source else metric_dict['tgt']
+                        score_list = [valid_metrics[metric_name] for metric_name in metric]
                         score = sum(score_list) / len(score_list)
                         print(f"[DEBUG] *score: {score}")
                         if score > self.best_score:
@@ -317,9 +317,10 @@ class FederatedDAANLearner(object):
                                                                                tag="test target",
                                                                                use_src_classifier=True)
                                                                                # use_src_clz=not use_target_classifier)
-                        ave_dom_acc, dom_acc_list = test_discriminator(self.global_model, self.num_regions,
-                                                                       self.src_val_loader,
-                                                                       self.tgt_val_loader)
+                        ave_dom_acc, dom_acc_list, entropy_dom_acc = test_discriminator(self.global_model,
+                                                                                        self.num_regions,
+                                                                                        self.src_val_loader,
+                                                                                        self.tgt_val_loader)
                         total_dom_acc, source_dom_acc, target_dom_acc = ave_dom_acc
                         total_acc_list, source_acc_list, target_acc_list = dom_acc_list
                         batch_per_epoch = 100. * batch_idx / len(self.src_train_loader)
@@ -339,8 +340,12 @@ class FederatedDAANLearner(object):
                         else:
                             metric_dict = {'acc': tgt_cls_acc, 'auc': tgt_cls_auc, 'ks': tgt_cls_ks}
                         score_list = [metric_dict[metric_name] for metric_name in metric]
-                        score = sum(score_list) / len(score_list)
-                        print(f"[DEBUG] *score: {score}")
+                        metric_score = sum(score_list) / len(score_list)
+                        # score = 0.8 * metric_score + 0.2 * entropy_dom_acc
+                        # print(f"[DEBUG] metric_score: {metric_score}")
+                        # print(f"[DEBUG] entropy_domain_score: {entropy_dom_acc}")
+                        score = metric_score
+                        print(f"[DEBUG] *total_score: {score}")
                         if score > self.best_score:
                             self.best_score = score
                             print(f"[INFO] best score:{self.best_score}")
