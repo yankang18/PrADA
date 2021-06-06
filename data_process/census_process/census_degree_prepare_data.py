@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from sklearn.utils import shuffle
 
-from data_process.census_process.census_9495_process_utils import consistentize_census9495_columns, \
+from data_process.census_process.census_degree_process_utils import consistentize_census9495_columns, \
     numericalize_census9495_data, \
     standardize_census_data, assign_native_country_identifier
 from data_process.census_process.mapping_resource import cate_to_index_map, continuous_cols, categorical_cols, \
@@ -225,7 +225,7 @@ def create_degree_source_target_data(p_census, from_dir, to_dir, train=True, sel
     print("(orig) undergrad_census_df_1 shape:", undergrad_census_df_1.shape)
     print("(orig) undergrad_census_df_0 shape:", undergrad_census_df_0.shape)
 
-    num_pos = 200
+    num_pos = 300
     num_neg = 4000 - num_pos
     if train:
         grad_census_values_1 = grad_census_df_1.values[:num_pos]
