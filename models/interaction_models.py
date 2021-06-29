@@ -26,7 +26,38 @@ def compute_interactive_key(idx_a, idx_b):
     return str(idx_a) + "-" + str(idx_b)
 
 
-class AttentiveFeatureComputer(object):
+class BiFeatureInteractionComputer(object):
+
+    def load_model(self, model_dict):
+        return None
+
+    def save_model(self, model_root, appendix):
+        return None
+
+    def freeze(self, is_freeze=False):
+        pass
+
+    def parameters(self):
+        return list()
+
+    def change_to_train_mode(self):
+        pass
+
+    def change_to_eval_mode(self):
+        pass
+
+    def build(self, feat_list):
+        return None
+
+    def fit(self, feat_list):
+        return None
+
+    def build_fit(self, feat_list):
+        self.build(feat_list)
+        return self.fit(feat_list)
+
+
+class AttentiveFeatureInteractionComputer(object):
     def __init__(self, transform_matrix_dict=None):
         self.transform_matrix_dict = transform_matrix_dict
         self.score_map = None
@@ -159,7 +190,7 @@ class InteractionModel(object):
         self.extractor_list = extractor_list
         self.aggregator_list = aggregator_list
         self.discriminator_list = discriminator_list
-        self.int_feat_computer = interactive_feature_computer
+        self.interactive_feature_computer = interactive_feature_computer
         self.discriminator_criterion = nn.CrossEntropyLoss()
         self.discriminator_set = False if discriminator_list is None else True
 
@@ -180,7 +211,7 @@ class InteractionModel(object):
             discriminator.load_state_dict(torch.load(path))
             print(f"[INFO] load discriminator model from {path}")
 
-        self.int_feat_computer.load_model(model_dict['transform_matrix'])
+        self.interactive_feature_computer.load_model(model_dict['transform_matrix'])
 
     def save_model(self, model_root, appendix):
         extractor_path_list = list()
@@ -210,7 +241,7 @@ class InteractionModel(object):
             discriminator_path_list.append(discriminator_path)
             print(f"[INFO] saved discriminator model to: {discriminator_path}")
 
-        trans_matrix_meta = self.int_feat_computer.save_model(model_root, appendix)
+        trans_matrix_meta = self.interactive_feature_computer.save_model(model_root, appendix)
 
         interactive_feature_meta = dict()
         interactive_feature_meta["extractor_path_list"] = extractor_path_list
@@ -224,8 +255,8 @@ class InteractionModel(object):
             raise RuntimeError('Discriminator not set.')
 
     def change_to_train_mode(self):
-        if self.int_feat_computer:
-            self.int_feat_computer.change_to_train_mode()
+        if self.interactive_feature_computer:
+            self.interactive_feature_computer.change_to_train_mode()
 
         for extractor, aggregator, discriminator in zip(self.extractor_list,
                                                         self.aggregator_list,
@@ -236,8 +267,8 @@ class InteractionModel(object):
                 discriminator.train()
 
     def change_to_eval_mode(self):
-        if self.int_feat_computer:
-            self.int_feat_computer.change_to_eval_mode()
+        if self.interactive_feature_computer:
+            self.interactive_feature_computer.change_to_eval_mode()
 
         for extractor, aggregator, discriminator in zip(self.extractor_list,
                                                         self.aggregator_list,
@@ -249,8 +280,8 @@ class InteractionModel(object):
 
     def parameters(self):
         param = self.extractor_parameters() + self.aggregator_parameters()
-        if self.int_feat_computer:
-            param += self.int_feat_computer.parameters()
+        if self.interactive_feature_computer:
+            param += self.interactive_feature_computer.parameters()
         if self.discriminator_set:
             param += self.discriminator_parameters()
         return param
@@ -282,7 +313,7 @@ class InteractionModel(object):
         self._freeze(self.extractor_list, is_freeze)
         self._freeze(self.aggregator_list, is_freeze)
         self._freeze(self.discriminator_list, is_freeze)
-        self.int_feat_computer.freeze(is_freeze)
+        self.interactive_feature_computer.freeze(is_freeze)
 
     def get_num_feature_groups(self):
         return len(self.extractor_list)
@@ -293,7 +324,7 @@ class InteractionModel(object):
 
     def compute_output_list(self, fg_list):
         fg_repr_list = self._compute_fg_repr_list(fg_list)
-        fg_repr_int_list = self.int_feat_computer.build_fit(fg_repr_list)
+        fg_repr_int_list = self.interactive_feature_computer.build_fit(fg_repr_list)
 
         # fg_intr_list = self.int_feat_computer.build_fit(fg_list)
         # fg_repr_intr_list = self._compute_fg_repr_list(fg_intr_list)
@@ -318,8 +349,8 @@ class InteractionModel(object):
             src_fg_repr_list.append(extractor(src_data))
             tgt_fg_repr_list.append(extractor(tgt_data))
 
-        src_intr_feat_list = self.int_feat_computer.build_fit(src_fg_repr_list)
-        tgt_intr_feat_list = self.int_feat_computer.build_fit(tgt_fg_repr_list)
+        src_intr_feat_list = self.interactive_feature_computer.build_fit(src_fg_repr_list)
+        tgt_intr_feat_list = self.interactive_feature_computer.build_fit(tgt_fg_repr_list)
 
         total_domain_loss = torch.tensor(0.)
         src_output_list = list()
@@ -345,7 +376,7 @@ class InteractionModel(object):
 
     def calculate_domain_discriminator_correctness(self, fg_list, is_source=True):
         fg_repr_list = self._compute_fg_repr_list(fg_list)
-        fg_repr_int_list = self.int_feat_computer.build_fit(fg_repr_list)
+        fg_repr_int_list = self.interactive_feature_computer.build_fit(fg_repr_list)
 
         corr_list = list()
         for fgi, extractor, discriminator in zip(fg_repr_int_list, self.extractor_list, self.discriminator_list):
