@@ -12,6 +12,11 @@ from sklearn.metrics import roc_auc_score, accuracy_score
 from statistics_utils import kl_divergence
 
 
+def create_id_from_hyperparameters(hyperparameter_dict):
+    hyperparam_list = [key + str(value) for key, value in hyperparameter_dict.items()]
+    return "_".join(hyperparam_list)
+
+
 def get_latest_timestamp(timestamped_file_name, folder):
     timestamp_list = []
     for filename in os.listdir(folder):
@@ -150,7 +155,8 @@ def test_discriminator(model, num_regions, source_loader, target_loader):
     entropy_domain_acc = entropy(cat_acc / acc_sum)
     ave_entropy = np.mean(entropy_domain_acc)
     print(f"[DEBUG] domain acc entropy: {entropy_domain_acc}, mean:{ave_entropy} ")
-    return (ave_total_acc, ave_source_acc, ave_target_acc), (list(total_acc), list(source_acc), list(target_acc)), ave_entropy
+    return (ave_total_acc, ave_source_acc, ave_target_acc), (
+        list(total_acc), list(source_acc), list(target_acc)), ave_entropy
 
 
 def entropy(predictions):
@@ -185,11 +191,11 @@ def produce_data_for_lr_shap(model, data_loader, column_name_list, output_file_f
         sample_list.append(sample)
     classifier_data = np.concatenate(sample_list, axis=0)
 
-    print("[INFO] global classifier input data with shape:{}".format(classifier_data.shape))
+    print(f"[INFO] global classifier input data with shape:{classifier_data.shape}")
     df_lr_input = pd.DataFrame(data=classifier_data, columns=column_name_list)
-    print(df_lr_input.head(5))
+    # print(df_lr_input.head(5))
     df_lr_input.to_csv(output_file_full_name, index=False)
-    print(f"[INFO] save lr-data-shap to {output_file_full_name}")
+    print(f"[INFO] save data to {output_file_full_name}")
 
 
 def produce_data_for_distribution(model,
