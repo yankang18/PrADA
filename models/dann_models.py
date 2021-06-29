@@ -47,16 +47,16 @@ class GlobalModel(object):
                  partition_data_fn,
                  beta=1.0,
                  pos_class_weight=1.0,
-                 loss_name="CE",
+                 loss_name="BCE",
                  feature_cross_model=None,
-                 feature_interactive_model=None,
+                 feature_interaction_model=None,
                  discriminator=None):
         self.global_discriminator = discriminator
         self.source_classifier = source_classifier
         self.target_classifier = target_classifier
         self.regional_model_list = list() if regional_model_list is None else regional_model_list
         self.feature_cross_model = feature_cross_model
-        self.feature_interactive_model = feature_interactive_model
+        self.feature_interaction_model = feature_interaction_model
         self.embedding_dict = embedding_dict
         self.loss_name = loss_name
         if loss_name == "CE":
@@ -154,9 +154,9 @@ class GlobalModel(object):
             region_model.load_model(region_part_dict[region]["models"])
 
         # load interactive model
-        if self.feature_interactive_model:
+        if self.feature_interaction_model:
             interactive_model_part_dict = task_meta_dict["interactive_part"]
-            self.feature_interactive_model.load_model(interactive_model_part_dict)
+            self.feature_interaction_model.load_model(interactive_model_part_dict)
 
     def save_model(self, root, task_id, file_name="task_meta", timestamp=None):
         """Save trained model."""
@@ -212,8 +212,8 @@ class GlobalModel(object):
             model_meta["region_part"][region]["models"] = res
 
         # save interactive model
-        if self.feature_interactive_model:
-            interactive_model = self.feature_interactive_model.save_model(model_checkpoint_folder,
+        if self.feature_interaction_model:
+            interactive_model = self.feature_interaction_model.save_model(model_checkpoint_folder,
                                                                           str(timestamp) + extension)
             model_meta["interactive_part"] = interactive_model
 
@@ -235,15 +235,15 @@ class GlobalModel(object):
                 param.requires_grad = not is_freeze
 
         # freeze region models
-        if region_idx_list is None:
-            for rg_model in self.regional_model_list:
-                for param in rg_model.parameters():
-                    param.requires_grad = not is_freeze
-        else:
-            print(f"white region idx list:{region_idx_list}")
-            for region_idx in region_idx_list:
-                for param in self.regional_model_list[region_idx].parameters():
-                    param.requires_grad = not is_freeze
+        # if region_idx_list is None:
+        for rg_model in self.regional_model_list:
+            for param in rg_model.parameters():
+                param.requires_grad = not is_freeze
+        # else:
+        #     print(f"white region idx list:{region_idx_list}")
+        #     for region_idx in region_idx_list:
+        #         for param in self.regional_model_list[region_idx].parameters():
+        #             param.requires_grad = not is_freeze
 
         # freeze embedding
         for emb in self.embedding_dict.values():
@@ -251,7 +251,8 @@ class GlobalModel(object):
                 param.requires_grad = not is_freeze
 
         # freeze interaction model
-        if self.feature_interactive_model: self.feature_interactive_model.freeze(is_freeze)
+        if self.feature_interaction_model:
+            self.feature_interaction_model.freeze(is_freeze)
 
     # TODO add feature_interactive_model
     def freeze_bottom_extractors(self, is_freeze=False, region_idx_list=None):
@@ -279,8 +280,8 @@ class GlobalModel(object):
 
     def get_num_regions(self):
         num_feature_groups = len(self.regional_model_list)
-        if self.feature_interactive_model:
-            num_feature_groups += self.feature_interactive_model.get_num_feature_groups()
+        if self.feature_interaction_model:
+            num_feature_groups += self.feature_interaction_model.get_num_feature_groups()
         return num_feature_groups
 
     def check_discriminator_exists(self):
@@ -288,7 +289,7 @@ class GlobalModel(object):
             if rg_model.has_discriminator() is False:
                 raise RuntimeError('Discriminator not set.')
 
-        if self.feature_interactive_model: self.feature_interactive_model.check_discriminator_exists()
+        if self.feature_interaction_model: self.feature_interaction_model.check_discriminator_exists()
 
     def change_to_train_mode(self):
         self.source_classifier.train()
@@ -298,7 +299,7 @@ class GlobalModel(object):
             rg_model.change_to_train_mode()
         for embedding in self.embedding_dict.values():
             embedding.train()
-        if self.feature_interactive_model: self.feature_interactive_model.change_to_train_mode()
+        if self.feature_interaction_model: self.feature_interaction_model.change_to_train_mode()
 
     def change_to_eval_mode(self):
         self.source_classifier.eval()
@@ -308,7 +309,7 @@ class GlobalModel(object):
             rg_model.change_to_eval_mode()
         for embedding in self.embedding_dict.values():
             embedding.eval()
-        if self.feature_interactive_model: self.feature_interactive_model.change_to_eval_mode()
+        if self.feature_interaction_model: self.feature_interaction_model.change_to_eval_mode()
 
     def parameters(self):
         param_list = list(self.source_classifier.parameters())
@@ -316,8 +317,8 @@ class GlobalModel(object):
             param_list += rg_model.parameters()
         for embedding in self.embedding_dict.values():
             param_list += embedding.parameters()
-        if self.feature_interactive_model:
-            param_list += self.feature_interactive_model.parameters()
+        if self.feature_interaction_model:
+            param_list += self.feature_interaction_model.parameters()
         return param_list
 
     def target_side_parameters(self):
@@ -326,8 +327,8 @@ class GlobalModel(object):
             param_list += rg_model.parameters()
         for embedding in self.embedding_dict.values():
             param_list += embedding.parameters()
-        if self.feature_interactive_model:
-            param_list += self.feature_interactive_model.parameters()
+        if self.feature_interaction_model:
+            param_list += self.feature_interaction_model.parameters()
         return param_list
 
     def source_classifier_parameters(self):
@@ -402,8 +403,8 @@ class GlobalModel(object):
                                                **kwargs):
         src_output_list = list()
         tgt_output_list = list()
-        if self.feature_interactive_model:
-            intr_domain_loss, src_int_output_list, tgt_int_output_list = self.feature_interactive_model.compute_loss(
+        if self.feature_interaction_model:
+            intr_domain_loss, src_int_output_list, tgt_int_output_list = self.feature_interaction_model.compute_loss(
                 src_feat_gp_list,
                 tgt_feat_gp_list,
                 domain_source_labels,
@@ -509,8 +510,8 @@ class GlobalModel(object):
                   zip(self.regional_model_list, fg_list)]
 
         # compute output from feature interaction model that wraps feature interactions
-        fgi_output_list = None if self.feature_interactive_model is None \
-            else self.feature_interactive_model.compute_output_list(fg_list)
+        fgi_output_list = None if self.feature_interaction_model is None \
+            else self.feature_interaction_model.compute_output_list(fg_list)
 
         return output_list, fgi_output_list
 
@@ -577,8 +578,8 @@ class GlobalModel(object):
             for regional_model, fg in zip(self.regional_model_list, fg_list):
                 output_list.append(regional_model.calculate_domain_discriminator_correctness(fg, is_source=is_source))
 
-        if self.feature_interactive_model:
-            output_list = output_list + self.feature_interactive_model.calculate_domain_discriminator_correctness(
+        if self.feature_interaction_model:
+            output_list = output_list + self.feature_interaction_model.calculate_domain_discriminator_correctness(
                 fg_list, is_source=is_source)
         # print(f"[DEBUG] is_source:{is_source}\t domain_discriminator_correctness {output_list}")
         return output_list
