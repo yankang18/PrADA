@@ -46,7 +46,7 @@ class FederatedDAANLearner(object):
                  target_val_loader=None,
                  max_epochs=500,
                  epoch_patience=2,
-                 valid_batch_interval=10,
+                 validation_batch_interval=10,
                  number_validations=None):
         self.global_model = model
         self.num_regions = self.global_model.get_num_regions()
@@ -70,7 +70,7 @@ class FederatedDAANLearner(object):
         self.best_score = None
         self.recoded_timestamp = None
         self.num_validations = number_validations
-        self.valid_batch_interval = valid_batch_interval
+        self.valid_batch_interval = validation_batch_interval
 
     def set_model_save_info(self, root):
         self.root = root
@@ -277,32 +277,6 @@ class FederatedDAANLearner(object):
                     class_loss.backward()
                     tgt_optimizer.step()
                     tgt_optimizer.zero_grad()
-
-                # if use_target_classifier:
-                #     if (batch_idx + 1) % tgt_clz_interval == 0:
-                #         # for i in range(num_tgt_clz_train_iter):
-                #         #     target_clz_data, target_clz_label = next(tgt_clz_train_iter)
-                #         #     class_loss = self.global_model.compute_classification_loss(target_clz_data,
-                #         #                                                                target_clz_label,
-                #         #                                                                use_source_classifier=True)
-                #         #     class_loss.backward()
-                #         #     tgt_optimizer.step()
-                #         #     tgt_optimizer.zero_grad()
-                #
-                #         print("[INFO] finish target classifier")
-                #         self.global_model.freeze_bottom(True)
-                #         self.global_model.freeze_source_classifier(True)
-                #         # print(f"[DEBUG] train target classifier for batch idx {batch_idx}, {len(tgt_clz_train_iter)}")
-                #         for i in range(num_tgt_clz_train_iter):
-                #             target_clz_data, target_clz_label = next(tgt_clz_train_iter)
-                #             class_loss = self.global_model.compute_classification_loss(target_clz_data,
-                #                                                                        target_clz_label,
-                #                                                                        use_source_classifier=False)
-                #             class_loss.backward()
-                #             tgt_optimizer.step()
-                #             tgt_optimizer.zero_grad()
-                #         self.global_model.freeze_bottom(False)
-                #         self.global_model.freeze_source_classifier(False)
 
                 with torch.no_grad():
                     if (batch_idx + 1) % valid_batch_interval == 0:
