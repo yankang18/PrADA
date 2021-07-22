@@ -151,9 +151,15 @@ class FederatedTargetLearner(object):
     def set_fine_tuning_region_indices(self, fine_tuning_region_index_list):
         self.fine_tuning_region_idx_list = fine_tuning_region_index_list
 
-    def train_target_with_alternating(self, global_epochs, top_epochs, bottom_epochs,
-                                      lr, task_id, dann_exp_result=None, metric=('ks', 'auc'),
-                                      weight_decay=0.0001):
+    def train_target_with_alternating(self,
+                                      global_epochs,
+                                      top_epochs,
+                                      bottom_epochs,
+                                      lr,
+                                      task_id,
+                                      dann_exp_result=None,
+                                      metric=('ks', 'auc'),
+                                      weight_decay=0.00001):
         self.task_id = task_id
 
         if dann_exp_result:
