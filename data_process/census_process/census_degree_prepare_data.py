@@ -1,3 +1,6 @@
+# from utils import get_timestamp
+from datetime import datetime
+
 import numpy as np
 import pandas as pd
 from sklearn.utils import shuffle
@@ -7,6 +10,11 @@ from data_process.census_process.census_degree_process_utils import consistentiz
     standardize_census_data, assign_native_country_identifier
 from data_process.census_process.mapping_resource import cate_to_index_map, continuous_cols, categorical_cols, \
     target_col_name
+
+
+def get_timestamp():
+    return int(datetime.utcnow().timestamp())
+
 
 # CENSUS_COLUMNS = ["age", "class_worker", "det_ind_code", "det_occ_code", "education",
 #                   "wage_per_hour", "hs_college", "marital_status", "major_ind_code", "occupation",
@@ -59,12 +67,12 @@ def process(data_path, to_dir=None, train=True):
     extension = ".csv"
     appendix = appendix + extension
 
-    print("--> consistentize original data")
+    print("[INFO] consistentize original data")
     c_census = consistentize_census9495_columns(census)
     # print(c_census.head())
     c_census.to_csv(to_dir + 'consistentized_census9495' + appendix, header=True, index=False)
 
-    print("--> numericalize data")
+    print("[INFO] numericalize data")
     p_census = numericalize_census9495_data(c_census, cate_to_index_map)
     return p_census
 
@@ -139,14 +147,24 @@ def create_asia_source_target_data(census_df, from_dir, train=True, selected=Tru
     print(f"[INFO] saved source data to {source_file_full_path}")
 
 
-def create_degree_source_target_data(p_census, from_dir, to_dir, train=True, selected=None,
-                                     grad_train_scaler=None, undergrad_train_scaler=None):
+def create_degree_source_target_data(p_census,
+                                     from_dir,
+                                     to_dir,
+                                     data_tag,
+                                     pos_ratio,
+                                     num_all,
+                                     train=True,
+                                     grad_train_scaler=None,
+                                     undergrad_train_scaler=None,
+                                     grad_census_test_values=None):
     appendix = create_file_appendix(train)
-    print("--- create_degree_source_target_data for {} data --- ".format("train" if train else "test"))
+    print("====================== create_degree_source_target_data for {} data ======================"
+          .format("train" if train else "test"))
 
+    # form source and target domain data
     doctorate_census = p_census[p_census['education'] == 11]
-    # master_census = p_census[(p_census['education'] == 9) | (p_census['education'] == 10)]
-    master_census = p_census[p_census['education'] == 9]
+    master_census = p_census[(p_census['education'] == 9) | (p_census['education'] == 10)]
+    # master_census = p_census[p_census['education'] == 9]
     undergrad_census = p_census[
         (p_census['education'] != 9) & (p_census['education'] != 10) & (p_census['education'] != 11)]
     columns = continuous_cols + categorical_cols + ['instance_weight', target_col_name]
@@ -165,57 +183,26 @@ def create_degree_source_target_data(p_census, from_dir, to_dir, train=True, sel
     master_census = pd.read_csv(from_dir + 'master_census9495' + appendix, skipinitialspace=True)
     undergrad_census = pd.read_csv(from_dir + 'undergrad_census9495' + appendix, skipinitialspace=True)
 
-    if selected:
-        compute_instance_prob(doctorate_census)
-        compute_instance_prob(master_census)
-        compute_instance_prob(undergrad_census)
-
-        doctor_size = selected["doctor_size"]
-        master_size = selected["master_size"]
-        undergrad_size = selected["undergrad_size"]
-
-        num_doctorate = doctorate_census.shape[0]
-        print("[INFO] num_doctorate:", num_doctorate)
-        doctorate_ins_prob = list(doctorate_census['instance_weight'].values)
-        doctorate_index_arr = np.random.choice(a=np.arange(num_doctorate), size=doctor_size, p=doctorate_ins_prob)
-
-        num_master = master_census.shape[0]
-        print("[INFO] num_master:", num_master)
-        master_ins_prob = list(master_census['instance_weight'].values)
-        master_index_arr = np.random.choice(a=np.arange(num_master), size=master_size, p=master_ins_prob)
-
-        num_undergrad = undergrad_census.shape[0]
-        print("[INFO] num_undergrad:", num_undergrad)
-        undergrad_ins_prob = list(undergrad_census['instance_weight'].values)
-        undergrad_index_arr = np.random.choice(a=np.arange(num_undergrad), size=undergrad_size, p=undergrad_ins_prob)
-
-        print("[INFO] doctorate_index_arr:", doctorate_index_arr.shape)
-        print("[INFO] master_index_arr:", master_index_arr.shape)
-        print("[INFO] undergrad_index_arr:", undergrad_index_arr.shape)
-
-        columns = continuous_cols + categorical_cols + [target_col_name]
-        print("[INFO] number of columns:", len(columns), columns)
-
-        # doctorate_census_values = doctorate_census[columns].values[doctorate_index_arr]
-        doctorate_census_values = doctorate_census[columns].values
-        master_census_values = master_census[columns].values[master_index_arr]
-        undergrad_census_values = undergrad_census[columns].values[undergrad_index_arr]
-    else:
-        doctorate_census_values = doctorate_census[columns].values
-        master_census_values = master_census[columns].values
-        undergrad_census_values = undergrad_census[columns].values
+    doctorate_census_values = doctorate_census[columns].values
+    master_census_values = master_census[columns].values
+    undergrad_census_values = undergrad_census[columns].values
 
     grad_census_values = np.concatenate([doctorate_census_values, master_census_values], axis=0)
     # grad_census_values = doctorate_census_values
 
-    # grad_census_values = shuffle(grad_census_values)
-    # undergrad_census_values = shuffle(undergrad_census_values)
+    grad_census_values = shuffle(grad_census_values)
+    undergrad_census_values = shuffle(undergrad_census_values)
 
-    grad_census_df = pd.DataFrame(data=grad_census_values, columns=columns)
+    grad_census_df_for_da = pd.DataFrame(data=grad_census_values, columns=columns)
     undergrad_census_df = pd.DataFrame(data=undergrad_census_values, columns=columns)
 
-    grad_census_df_1 = grad_census_df[grad_census_df[target_col_name] == 1]
-    grad_census_df_0 = grad_census_df[grad_census_df[target_col_name] == 0]
+    # print("da table:")
+    # print(grad_census_df_for_da.head())
+    _, grad_train_scaler = standardize_census_data(grad_census_df_for_da, continuous_cols, grad_train_scaler)
+    _, udgrad_train_scaler = standardize_census_data(undergrad_census_df, continuous_cols, undergrad_train_scaler)
+
+    grad_census_df_1 = grad_census_df_for_da[grad_census_df_for_da[target_col_name] == 1]
+    grad_census_df_0 = grad_census_df_for_da[grad_census_df_for_da[target_col_name] == 0]
 
     undergrad_census_df_1 = undergrad_census_df[undergrad_census_df[target_col_name] == 1]
     undergrad_census_df_0 = undergrad_census_df[undergrad_census_df[target_col_name] == 0]
@@ -225,44 +212,90 @@ def create_degree_source_target_data(p_census, from_dir, to_dir, train=True, sel
     print("(orig) undergrad_census_df_1 shape:", undergrad_census_df_1.shape)
     print("(orig) undergrad_census_df_0 shape:", undergrad_census_df_0.shape)
 
-    num_pos = 300
-    num_neg = 4000 - num_pos
+    grad_census_for_test = None
+    test_pos_ratio = 0.5
     if train:
+        num_pos = int(num_all * pos_ratio)
+        num_neg = int(num_all * (1 - pos_ratio))
+
+        print(f"train num_pos:{num_pos}")
+        print(f"train num_neg:{num_neg}")
+
+        # get labeled target data for supervised training
         grad_census_values_1 = grad_census_df_1.values[:num_pos]
         grad_census_values_0 = grad_census_df_0.values[:num_neg]
+
+        num_pos_for_test = int((grad_census_df_0.shape[0] - num_all) * test_pos_ratio)
+        print(f"num_pos_for_test:{num_pos_for_test}")
+        grad_census_test_values_1 = grad_census_df_1.values[num_pos:num_pos + num_pos_for_test]
+        grad_census_test_values_0 = grad_census_df_0.values[num_all:]
+        # grad_census_test_values_1 = grad_census_df_1.values[num_pos:]
+        # grad_census_test_values_0 = grad_census_df_0.values[num_neg:]
+        grad_census_for_test = np.concatenate([grad_census_test_values_1, grad_census_test_values_0], axis=0)
+
+        print(f"grad_census_for_test.shape: {grad_census_for_test.shape}")
+        print(f"grad_census_test_values_1.shape: {grad_census_test_values_1.shape}")
+        print(f"grad_census_test_values_0.shape: {grad_census_test_values_0.shape}")
+
+        grad_census_values_for_supervise = shuffle(np.concatenate((grad_census_values_1, grad_census_values_0), axis=0))
     else:
+        # num_pos = int((grad_census_df_0.shape[0] + grad_census_df_0.shape[1]) * test_pos_ratio)
+        # grad_census_values_1 = grad_census_df_1.values[:num_pos]
         grad_census_values_1 = grad_census_df_1.values
         grad_census_values_0 = grad_census_df_0.values
+        grad_census_values_for_supervise = shuffle(
+            np.concatenate((grad_census_values_1, grad_census_values_0, grad_census_test_values), axis=0))
 
     print("grad_census_values_1 shape:", grad_census_values_1.shape)
     print("grad_census_values_0 shape:", grad_census_values_0.shape)
     print("undergrad_census_df_1 shape:", undergrad_census_df_1.shape)
     print("undergrad_census_df_0 shape:", undergrad_census_df_0.shape)
 
-    grad_census_values_all = shuffle(np.concatenate((grad_census_values_1, grad_census_values_0), axis=0))
-    grad_census_df_all = pd.DataFrame(data=grad_census_values_all, columns=columns)
+    # grad_census_values_for_supervise = shuffle(np.concatenate((grad_census_values_1, grad_census_values_0), axis=0))
+    grad_census_df_for_supervise = pd.DataFrame(data=grad_census_values_for_supervise, columns=columns)
 
-    undergrad_census_values_all = shuffle(np.concatenate((undergrad_census_df_1, undergrad_census_df_0), axis=0))
-    if train:
-        undergrad_census_values_all = undergrad_census_values_all[:80000]
-
+    undergrad_pos_num = undergrad_census_df_1.shape[0]
+    undergrad_census_values_all = shuffle(
+        np.concatenate((undergrad_census_df_1.values, undergrad_census_df_0[:undergrad_pos_num * 9].values), axis=0))
     undergrad_census_df_all = pd.DataFrame(data=undergrad_census_values_all, columns=columns)
 
-    _, grad_train_scaler = standardize_census_data(grad_census_df_all, continuous_cols, grad_train_scaler)
-    _, udgrad_train_scaler = standardize_census_data(undergrad_census_df_all, continuous_cols, undergrad_train_scaler)
+    # _, grad_train_scaler = standardize_census_data(grad_census_df_for_da, continuous_cols, grad_train_scaler)
+    # _, grad_train_scaler = standardize_census_data(grad_census_df_for_supervise, continuous_cols, grad_train_scaler)
+    # _, udgrad_train_scaler = standardize_census_data(undergrad_census_df_all, continuous_cols, undergrad_train_scaler)
+    # _, _ = standardize_census_data(grad_census_df_for_da, continuous_cols, None)
+    # _, grad_train_scaler = standardize_census_data(grad_census_df_for_supervise, continuous_cols, grad_train_scaler)
+    # _, udgrad_train_scaler = standardize_census_data(undergrad_census_df_all, continuous_cols, undergrad_train_scaler)
 
-    print("[INFO] (final) grad_census_df_all shape:", grad_census_df_all.shape)
+    print("[INFO] (final) grad_census_df_for_supervise shape:", grad_census_df_for_supervise.shape)
+    print("[INFO]         grad_census_df_for_supervise pos:",
+          grad_census_df_for_supervise[grad_census_df_for_supervise[target_col_name] == 1].shape)
+    print("[INFO]         grad_census_df_for_supervise neg:",
+          grad_census_df_for_supervise[grad_census_df_for_supervise[target_col_name] == 0].shape)
     print("[INFO] (final) undergrad_census_df_all shape:", undergrad_census_df_all.shape)
+    print("[INFO]         undergrad_census_df_all pos:",
+          undergrad_census_df_all[undergrad_census_df_all[target_col_name] == 1].shape)
+    print("[INFO]         undergrad_census_df_all neg:",
+          undergrad_census_df_all[undergrad_census_df_all[target_col_name] == 0].shape)
 
     # save data
-    grad_file_full_path = from_dir + 'grad_census9495_da_' + str(num_pos) + appendix
-    undergrad_file_full_path = from_dir + 'undergrad_census9495_da_' + str(num_pos) + appendix
-    grad_census_df_all.to_csv(grad_file_full_path, header=True, index=False)
+    grad_ft_file_full_path = from_dir + 'grad_census9495_ft_' + str(data_tag) + appendix
+    undergrad_file_full_path = from_dir + 'undergrad_census9495_da_' + str(data_tag) + appendix
+    grad_census_df_for_supervise.to_csv(grad_ft_file_full_path, header=True, index=False)
     undergrad_census_df_all.to_csv(undergrad_file_full_path, header=True, index=False)
-    print(f"[INFO] saved grad data to {grad_file_full_path}")
+    print(f"[INFO] saved grad ft data to {grad_ft_file_full_path}")
     print(f"[INFO] saved undergrad data to {undergrad_file_full_path}")
 
-    return grad_train_scaler, udgrad_train_scaler
+    if train:
+        print("[INFO] (final) grad_census_df_for_da shape:", grad_census_df_for_da.shape)
+        print("[INFO]         grad_census_df_for_da pos:",
+              grad_census_df_for_da[grad_census_df_for_da[target_col_name] == 1].shape)
+        print("[INFO]         grad_census_df_for_da neg:",
+              grad_census_df_for_da[grad_census_df_for_da[target_col_name] == 0].shape)
+        grad_da_file_full_path = from_dir + 'grad_census9495_da_' + str(data_tag) + appendix
+        grad_census_df_for_da.to_csv(grad_da_file_full_path, header=True, index=False)
+        print(f"[INFO] saved grad da data to {grad_da_file_full_path}")
+
+    return grad_train_scaler, udgrad_train_scaler, grad_census_for_test
 
 
 if __name__ == "__main__":
@@ -280,23 +313,28 @@ if __name__ == "__main__":
     train_selected = None
     test_selected = None
 
+    data_tag = "all4000pos001v3"
+    pos_ratio = 0.01
+    num_all = 4000
     create_degree_data = True
     if create_degree_data:
-        print("[INFO] ------ create Degree data ------")
-        print("[INFO] ------ create Degree train data ------")
-        grad_train_scaler, udgrad_train_scaler = create_degree_source_target_data(train_df,
-                                                                                  from_dir=output_path,
-                                                                                  to_dir=output_path,
-                                                                                  train=True,
-                                                                                  selected=train_selected)
-        print("[INFO] ------ create Degree test data ------")
+        grad_train_scaler, udgrad_train_scaler, grad_census_for_test = create_degree_source_target_data(train_df,
+                                                                                                        from_dir=output_path,
+                                                                                                        to_dir=output_path,
+                                                                                                        train=True,
+                                                                                                        pos_ratio=pos_ratio,
+                                                                                                        num_all=num_all,
+                                                                                                        data_tag=data_tag)
         create_degree_source_target_data(test_df,
                                          from_dir=output_path,
                                          to_dir=output_path,
                                          train=False,
-                                         selected=test_selected,
+                                         pos_ratio=pos_ratio,
                                          grad_train_scaler=grad_train_scaler,
-                                         undergrad_train_scaler=udgrad_train_scaler)
+                                         undergrad_train_scaler=udgrad_train_scaler,
+                                         grad_census_test_values=grad_census_for_test,
+                                         data_tag=data_tag,
+                                         num_all=num_all)
     else:
         print("[INFO] ------ create Asia data ------")
         print("[INFO] ------ create Asia train data ------")
