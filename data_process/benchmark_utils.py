@@ -49,10 +49,11 @@ def prepare_models(kwargs):
     n_tree_estimators = 200 if n_tree_estimators is None else n_tree_estimators
     max_depth = 4 if max_depth is None else max_depth
     num_leaves = 10
+    subsample = 1.0
     lgb_params = {'objective': 'binary', 'metric': 'ks_metric', 'verbosity': -1, 'boosting_type': 'gbdt',
                   'n_estimators': n_tree_estimators, 'lambda_l1': 10, 'lambda_l2': 0.001, 'num_leaves': num_leaves,
                   'feature_fraction': 0.7, 'bagging_fraction': 0.72, 'bagging_freq': 3, 'max_depth': max_depth,
-                  'min_child_samples': 10}
+                  'min_child_samples': 10, 'subsample': subsample}
 
     # xgb_params = {'booster': 'gbtree', 'lambda': 0.01, 'alpha': 0.01, 'n_estimators': n_tree_estimators,
     #               'eta': 0.05, 'gamma': 0.34, 'grow_policy': 'lossguide', 'max_depth': max_depth,
@@ -60,11 +61,11 @@ def prepare_models(kwargs):
 
     xgb_params = {'booster': 'gbtree', 'lambda': 0.01, 'alpha': 0.01, 'n_estimators': n_tree_estimators,
                   'max_depth': max_depth, 'eta': 0.05, 'gamma': 0.34, 'grow_policy': 'lossguide',
-                  'feature_fraction': 0.7, 'subsample': 0.72}
+                  'feature_fraction': 0.7, 'subsample': subsample}
 
     model_dict = {
         "lr": LogisticRegression(),
-        # "lgbm": LGBMClassifier(**lgb_params),
+        "lgbm": LGBMClassifier(**lgb_params),
         "xgb": xgb.XGBClassifier(**xgb_params)}
 
     return model_dict
