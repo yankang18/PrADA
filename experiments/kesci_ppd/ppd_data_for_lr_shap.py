@@ -1,13 +1,7 @@
-import numpy as np
-import pandas as pd
-from sklearn.preprocessing import StandardScaler
-from datasets.census_dataloader import get_income_census_dataloaders
-from experiments.income_census.train_census_fg_dann import create_global_model
-from utils import test_classification, produce_data_for_lr_shap
-from data_process.census_process.mapping_resource import continuous_cols, categorical_cols, target_col_name
 from datasets.ppd_dataloader import get_pdd_dataloaders_ob
 from experiments.kesci_ppd.train_ppd_fg_dann import create_pdd_global_model
-from utils import test_classification
+from utils import produce_data_for_lr_shap
+from utils import test_classifier
 
 if __name__ == "__main__":
     dann_root_folder = "ppd_dann"
@@ -38,7 +32,7 @@ if __name__ == "__main__":
     target_test_loader, _ = get_pdd_dataloaders_ob(ds_file_name=target_test_file_name, batch_size=batch_size,
                                                    split_ratio=1.0)
 
-    acc, auc, ks = test_classification(model, target_test_loader, "test")
+    acc, auc, ks = test_classifier(model, target_test_loader, "test")
     print(f"[INFO] acc:{acc}, auc:{auc}, ks:{ks}")
 
     print("[INFO] Produce LR data for SHAP")

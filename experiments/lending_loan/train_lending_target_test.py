@@ -1,7 +1,7 @@
 from datasets.lending_dataloader import get_lending_dataloader
 from experiments.lending_loan.train_lending_dann import create_global_model_wrapper
 
-from utils import test_classification
+from utils import test_classifier
 
 if __name__ == "__main__":
 
@@ -39,5 +39,5 @@ if __name__ == "__main__":
     loan_2018_test_loader = get_lending_dataloader(dir=loan_2018_dir, batch_size=batch_size, data_mode="test")
     print("[INFO] data loaded ...")
 
-    acc, auc, ks = test_classification(wrapper, loan_2018_test_loader)
+    acc, auc, ks = test_classifier(wrapper, loan_2018_test_loader)
     print(f"acc:{acc}, auc:{auc}, ks:{ks}")

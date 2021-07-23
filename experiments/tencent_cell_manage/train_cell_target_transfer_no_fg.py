@@ -1,7 +1,7 @@
 from datasets.cell_manage_dataloader import get_cell_manager_dataloader_ob
 from models.experiment_target_learner import FederatedTargetLearner
 from experiments.tencent_cell_manage.train_cell_dann_no_fg import create_global_daan_model
-from utils import test_classification
+from utils import test_classifier
 
 if __name__ == "__main__":
     dann_root_folder = "cell_dann/"
@@ -47,7 +47,7 @@ if __name__ == "__main__":
     tgt_test_loader = get_cell_manager_dataloader_ob(dir=target_dir, batch_size=batch_size * 2, data_mode="test")
     print("[INFO] data loaded ...")
 
-    acc, auc, ks = test_classification(wrapper, tgt_test_loader)
+    acc, auc, ks = test_classifier(wrapper, tgt_test_loader)
     print(f"acc:{acc}, auc:{auc}, ks:{ks}")
 
     #
@@ -72,5 +72,5 @@ if __name__ == "__main__":
     print("[DEBUG] Global classifier Model Parameter After train:")
     wrapper.print_parameters()
 
-    acc, auc, ks = test_classification(wrapper, tgt_test_loader)
+    acc, auc, ks = test_classifier(wrapper, tgt_test_loader)
     print(f"acc:{acc}, auc:{auc}, ks:{ks}")

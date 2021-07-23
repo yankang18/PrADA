@@ -1,29 +1,50 @@
+import numpy as np
+
 from models.classifier import GlobalClassifier
 from models.dann_models import GlobalModel, RegionalModel
-from models.discriminator import GlobalDiscriminator, CensusRegionDiscriminator
-from models.interaction_models import initialize_transform_matrix_dict, AttentiveFeatureComputer, InteractionModel
+from models.discriminator import GlobalDiscriminator
+from models.interaction_models import InteractionModel, BiFeatureInteractionComputer
+from utils import compute_parameter_size
 
 
-def create_interaction_model(input_dims_list, create_model_group_fn, using_transform_matrix=True):
+def create_feature_interaction_model(feature_extractor_architecture_list,
+                                     intr_feature_extractor_architecture_list,
+                                     create_model_group_fn,
+                                     using_transform_matrix=True):
     """
     create interaction model that is responsible for interations among feature groups.
     """
-    hidden_dim_list = [f[-1] for f in input_dims_list]
-    if using_transform_matrix:
-        print("[INFO] create transform matrix with hidden_dim_list:", hidden_dim_list)
-        transform_matrix_dict = initialize_transform_matrix_dict(hidden_dim_list)
+    # hidden_dim_list = [f[-1] for f in input_dims_list]
+    # if using_transform_matrix:
+    #     print("[INFO] create transform matrix with hidden_dim_list:", hidden_dim_list)
+    #     transform_matrix_dict = initialize_transform_matrix_dict(hidden_dim_list)
+    # else:
+    #     if len(set(hidden_dim_list)) > 1:
+    #         raise RuntimeError(f"[ERROR] all hidden dim should be the same if do not use tranform matrix,"
+    #                            f" but get hidden_dim_list:{hidden_dim_list}")
+    #     transform_matrix_dict = None
+    # feat_intr_computer = AttentiveFeatureInteractionComputer(transform_matrix_dict=transform_matrix_dict)
+    # extractor_list, classifier_list, discriminator_list = create_model_group_list(input_dims_list,
+    #                                                                               create_model_group_fn)
+
+    feat_intr_computer = BiFeatureInteractionComputer()
+    if intr_feature_extractor_architecture_list is None:
+        intr_feat_extractor_arch_list = list()
+        for i in range(len(feature_extractor_architecture_list) - 1):
+            for j in range(i + 1, len(feature_extractor_architecture_list)):
+                print(i, "---", j)
+                intr_feat_extractor_arch_list.append(
+                    np.array(feature_extractor_architecture_list[i]) + np.array(feature_extractor_architecture_list[j]))
     else:
-        if len(set(hidden_dim_list)) > 1:
-            raise RuntimeError(f"[ERROR] all hidden dim should be the same if do not use tranform matrix,"
-                               f" but get hidden_dim_list:{hidden_dim_list}")
-        transform_matrix_dict = None
-    att_feat_computer = AttentiveFeatureComputer(transform_matrix_dict=transform_matrix_dict)
-    extractor_list, classifier_list, discriminator_list = create_model_group_list(input_dims_list,
+        intr_feat_extractor_arch_list = intr_feature_extractor_architecture_list
+    print(f"intr_feat_extractor_arch_list:{intr_feat_extractor_arch_list}")
+    print(f"# of parameters:{compute_parameter_size(intr_feat_extractor_arch_list)}")
+    extractor_list, classifier_list, discriminator_list = create_model_group_list(intr_feat_extractor_arch_list,
                                                                                   create_model_group_fn)
     return InteractionModel(extractor_list=extractor_list,
                             aggregator_list=classifier_list,
                             discriminator_list=discriminator_list,
-                            interactive_feature_computer=att_feat_computer)
+                            interactive_feature_computer=feat_intr_computer)
 
 
 def create_model_group_list(input_dims_list, create_model_group_fn):
@@ -61,6 +82,7 @@ def create_region_model_list(input_dims_list, create_model_group_fn):
 
 def wire_fg_dann_global_model(embedding_dict,
                               feature_extractor_architecture_list,
+                              intr_feature_extractor_architecture_list,
                               num_wide_feature,
                               using_feature_group,
                               using_interaction,
@@ -87,6 +109,7 @@ def wire_fg_dann_global_model(embedding_dict,
     if using_feature_group:
         print(f"[INFO] feature_extractor_architecture_list:{feature_extractor_architecture_list}, "
               f"len:{len(feature_extractor_architecture_list)}")
+        print(f"# of parameters:{compute_parameter_size(feature_extractor_architecture_list)}")
         region_model_list = create_region_model_list(feature_extractor_architecture_list, create_model_group_fn)
     else:
         region_model_list = list()
@@ -95,9 +118,10 @@ def wire_fg_dann_global_model(embedding_dict,
     interaction_model = None
     interactive_group_num = 0
     if using_interaction:
-        interaction_model = create_interaction_model(feature_extractor_architecture_list,
-                                                     create_model_group_fn,
-                                                     using_transform_matrix)
+        interaction_model = create_feature_interaction_model(feature_extractor_architecture_list,
+                                                             intr_feature_extractor_architecture_list,
+                                                             create_model_group_fn,
+                                                             using_transform_matrix)
         interactive_group_num = interaction_model.get_num_feature_groups()
 
     global_discriminator_dim = len(region_model_list) + interactive_group_num
@@ -114,7 +138,7 @@ def wire_fg_dann_global_model(embedding_dict,
                                regional_model_list=region_model_list,
                                embedding_dict=embedding_dict,
                                partition_data_fn=partition_data_fn,
-                               feature_interactive_model=interaction_model,
+                               feature_interaction_model=interaction_model,
                                pos_class_weight=pos_class_weight,
                                loss_name="BCE",
                                discriminator=global_discriminator)

@@ -226,9 +226,9 @@ if __name__ == "__main__":
     print("[INFO] data loaded ...")
 
     plat = FederatedDAANLearner(model=wrapper,
-                                source_train_loader=src_train_loader,
+                                source_da_train_loader=src_train_loader,
                                 source_val_loader=src_test_loader,
-                                target_train_loader=tgt_train_loader,
+                                target_da_train_loader=tgt_train_loader,
                                 target_val_loader=tgt_test_loader,
                                 epoch_patience=2,
                                 max_epochs=500)
@@ -236,6 +236,6 @@ if __name__ == "__main__":
     # wrapper.print_global_classifier_param()
     plat.set_model_save_info("lending_dann")
     task_id = "20200909_w_XAI_BCE_01_lr_0001"
-    plat.train_dann(epochs=300, lr=3e-3, task_id=task_id)
+    plat.train_dann(epochs=300, src_lr=3e-3, task_id=task_id)
 
     wrapper.print_parameters()

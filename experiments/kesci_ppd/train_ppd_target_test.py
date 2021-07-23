@@ -4,7 +4,7 @@ from sklearn.preprocessing import StandardScaler
 
 from datasets.ppd_dataloader import get_pdd_dataloaders_ob
 from experiments.kesci_ppd.train_ppd_fg_dann import create_pdd_global_model
-from utils import test_classification
+from utils import test_classifier
 
 
 def normalize(x):

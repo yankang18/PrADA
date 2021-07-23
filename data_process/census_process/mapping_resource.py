@@ -489,7 +489,9 @@ education_value_map = {
 }
 
 continuous_cols = ["age", "gender", "education_year", "capital_gain", "capital_loss", "stock_dividends"]
-# continuous_cols = ["age", "gender", "capital_gain", "capital_loss", "stock_dividends"]
+continuous_cols_v2 = ["age", "gender", "capital_gain", "capital_loss", "stock_dividends"]
+continuous_cols_v3 = ["age", "gender", "capital_gain", "capital_loss"]
+continuous_cols_v4 = ["age", "gender", "education_year", "capital_gain", "capital_loss"]
 categorical_cols = ["class_worker", "major_ind_code", "major_occ_code", "unemp_reason", "full_or_part_emp",
                     "own_or_self",
                     "education", "race", "age_index", "gender_index", "marital_stat", "union_member", "vet_benefits",

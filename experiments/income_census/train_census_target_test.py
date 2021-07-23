@@ -1,6 +1,6 @@
 from datasets.census_dataloader import get_income_census_dataloaders
 from experiments.income_census.train_census_fg_dann import create_global_model
-from utils import test_classification
+from utils import test_classifier
 
 if __name__ == "__main__":
     dann_root_folder = "census_dann"
@@ -31,5 +31,5 @@ if __name__ == "__main__":
         ds_file_name=target_test_file_name, batch_size=batch_size, split_ratio=1.0)
 
     print("[INFO] Run test")
-    acc, auc, ks = test_classification(model, target_test_loader, "test")
+    acc, auc, ks = test_classifier(model, target_test_loader, "test")
     print(f"[INFO] test acc:{acc}, auc:{auc}, ks:{ks}")

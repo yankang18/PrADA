@@ -1,7 +1,7 @@
 from datasets.census_dataloader import get_income_census_dataloaders
 from models.experiment_target_learner import FederatedTargetLearner
 from experiments.income_census.train_census_fg_dann import create_global_model
-from experiments.income_census.train_census_target_test import test_classification
+from experiments.income_census.train_census_target_test import test_classifier
 
 if __name__ == "__main__":
     # dann_root_folder = "census_dann"
@@ -45,5 +45,5 @@ if __name__ == "__main__":
     print("[DEBUG] Global classifier Model Parameter After train:")
     wrapper.print_parameters()
 
-    acc, auc = test_classification(wrapper, census95_test_loader)
+    acc, auc = test_classifier(wrapper, census95_test_loader)
     print(f"acc:{acc}, auc:{auc}")

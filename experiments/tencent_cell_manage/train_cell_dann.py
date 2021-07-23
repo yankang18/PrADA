@@ -201,18 +201,18 @@ if __name__ == "__main__":
             tgt_test_loader = get_cell_manager_dataloader(tgt_test_ds, batch_size=bs * 2)
 
             plat = FederatedDAANLearner(model=daan_model,
-                                        source_train_loader=src_train_loader,
+                                        source_da_train_loader=src_train_loader,
                                         source_val_loader=src_test_loader,
-                                        target_train_loader=tgt_train_loader,
+                                        target_da_train_loader=tgt_train_loader,
                                         target_val_loader=tgt_test_loader,
                                         max_epochs=400,
-                                        valid_batch_interval=10,
+                                        validation_batch_interval=10,
                                         epoch_patience=epoch_patience)
 
             # wrapper.print_global_classifier_param()
             plat.set_model_save_info(exp_dir)
             # plat.train_dann(epochs=300, lr=3e-3, task_id=task_id)
-            plat.train_dann(epochs=200, lr=lr, task_id=task_id)
+            plat.train_dann(epochs=200, src_lr=lr, task_id=task_id)
             # plat.train_source_only(epochs=200, lr=3e-3)
 
             daan_model.print_parameters()

@@ -1,7 +1,7 @@
 from datasets.lending_dataloader import get_lending_dataloader
 from models.experiment_target_learner import FederatedTargetLearner
 from experiments.lending_loan.train_lending_dann_no_fg import create_global_model_wrapper
-from utils import test_classification
+from utils import test_classifier
 
 if __name__ == "__main__":
     dann_root_folder = "lending_dann"
@@ -33,7 +33,7 @@ if __name__ == "__main__":
     tgt_test_loader = get_lending_dataloader(dir=loan_2018_dir, batch_size=batch_size * 2, data_mode="test")
     print("[INFO] data loaded ...")
 
-    acc, auc, ks = test_classification(wrapper, tgt_test_loader)
+    acc, auc, ks = test_classifier(wrapper, tgt_test_loader)
     print(f"acc:{acc}, auc:{auc}, ks:{ks}")
 
     #
@@ -56,5 +56,5 @@ if __name__ == "__main__":
     print("[DEBUG] Global classifier Model Parameter After train:")
     wrapper.print_parameters()
 
-    acc, auc, ks = test_classification(wrapper, tgt_test_loader)
+    acc, auc, ks = test_classifier(wrapper, tgt_test_loader)
     print(f"acc:{acc}, auc:{auc}, ks:{ks}")

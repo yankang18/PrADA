@@ -1,7 +1,7 @@
 from collections import OrderedDict
 
 from datasets.ppd_dataloader import get_datasets, get_dataloader
-from experiments.kesci_ppd.global_config import feature_extractor_architecture_list, data_tag, tgt_tag
+from experiments.kesci_ppd.global_config import feature_extractor_architecture_list, tgt_data_tag, tgt_tag, data_tag
 from experiments.kesci_ppd.meta_data import column_name_list, group_ind_list, group_info, embedding_shape_map
 from models.classifier import CensusFeatureAggregator
 from models.dann_models import create_embeddings
@@ -94,18 +94,19 @@ def create_embedding_dict():
 #     return input_int_dims_list
 
 
-def create_pdd_global_model(pos_class_weight=1.0):
+def create_pdd_global_model(pos_class_weight=1.0, num_wide_feature=6, using_interaction=False):
     embedding_dict = create_embedding_dict()
     print("[INFO] embedding_dict", embedding_dict)
 
-    num_wide_feature = 6
+    num_wide_feature = num_wide_feature
     # num_wide_feature = 17
     using_feature_group = True
-    using_interaction = False
+    using_interaction = using_interaction
     using_transform_matrix = False
 
     global_model = wire_fg_dann_global_model(embedding_dict=embedding_dict,
                                              feature_extractor_architecture_list=feature_extractor_architecture_list,
+                                             intr_feature_extractor_architecture_list=None,
                                              num_wide_feature=num_wide_feature,
                                              using_feature_group=using_feature_group,
                                              using_interaction=using_interaction,
@@ -119,89 +120,112 @@ def create_pdd_global_model(pos_class_weight=1.0):
 
 if __name__ == "__main__":
 
+    ########
     # hyper-parameters
+    ########
+
+    # learning rate
     momentum = 0.99
-    weight_decay = 0.0001
+    # weight_decay = 0.00001
+    weight_decay = 0.0
+
+    tgt_lr = 5e-4
+    src_learning_rate_list = [5e-4]
+
+    # batch size
+    all_batch_size = 64
+    src_batch_size_list = [all_batch_size]
+    tgt_batch_size = all_batch_size
+
+    # scenario control
+    using_interaction = True
+    is_all = False  # if true using src+tgt else just using src for training source classifier
+    use_target_classifier = False  # apply target classifier for multi-task learning
+    monitor_source = False  # monitor on source test data for validation
     apply_global_domain_adaption = False
     global_domain_adaption_lambda = 1.0
-    # batch_size_list = [128]
-    batch_size_list = [64]
-    # learning_rate_list = [1.2e-3]
-    # learning_rate_list = [1.2e-3]
-    learning_rate_list = [5e-4]
-    # learning_rate_list = [8e-4]
-    # batch_size_list = [256, 512]
-    # learning_rate_list = [3e-4, 8e-4, 1e-3]
-    pos_class_weight = 1.0
-    epoch_patience = 2.5
-    metrics = ('ks', 'auc')
+    num_tgt_clz_train_iter = 1
+    tgt_clz_interval = 1
+    # num_tgt_clz_train_iter = (int(3000 / tgt_batch_size) + 1) * 10
 
+    epoch_patience = 5
+
+    # controls alpha
+    # max_epochs = 800
+    max_epochs = 600
+    # max_epochs = 400
+
+    pos_class_weight = 3.0
+    metrics = ('ks', 'auc')
     exp_dir = "ppd_dann"
 
     # load data
-    # data_dir = "/Users/yankang/Documents/Data/Data_Open_Analysis_master/Kesci_PPD/PPD_data_v1/"
-    # source_train_file_name = data_dir + "PPD_2014_1to9_train.csv"
-    # target_train_file_name = data_dir + 'PPD_2014_10to12_train.csv'
-    # source_test_file_name = data_dir + 'PPD_2014_1to9_test.csv'
-    # target_test_file_name = data_dir + 'PPD_2014_10to12_test.csv'
+    # ts = '1620085151'
+    # data_dir = f"/Users/yankang/Documents/Data/Data_Open_Analysis_master/Kesci_PPD/PPD_data_output_{ts}/"
+    # source_train_file_name = data_dir + f"PPD_2014_src_1to9_{tgt_data_tag}_{src_data_tag}_{tgt_tag}_train.csv"
+    # source_test_file_name = data_dir + f'PPD_2014_src_1to9_{tgt_data_tag}_{src_data_tag}_{tgt_tag}_test.csv'
+    # target_train_file_name = data_dir + f'PPD_2014_tgt_10to11_{tgt_data_tag}_{src_data_tag}_{tgt_tag}_train.csv'
+    # target_test_file_name = data_dir + f'PPD_2014_tgt_10to11_{tgt_data_tag}_{src_data_tag}_{tgt_tag}_test.csv'
+    # src_tgt_train_file_name = data_dir + f'PPD_2014_src_tgt_{tgt_data_tag}_{src_data_tag}_{tgt_tag}_train.csv'
 
-    # data_dir = "/Users/yankang/Documents/Data/Data_Open_Analysis_master/Kesci_PPD/PPD_data_output/"
+    ts = '20210522'
+    data_tag = 'lbl004tgt4000v4'
+    data_tag = 'lbl002tgt4000'
+    # data_tag = 'lbl001tgt4000'
+    data_dir = f"/Users/yankang/Documents/Data/Data_Open_Analysis_master/Kesci_PPD/PPD_data_output_{ts}/"
 
-    # source_train_file_name = data_dir+"PPD_2014_1to8_train.csv"
-    # target_train_file_name = data_dir+'PPD_2014_10to12_train.csv'
-    # source_test_file_name = data_dir+'PPD_2014_1to8_test.csv'
-    # target_test_file_name = data_dir+'PPD_2014_10to12_test.csv'
+    # source_train_file_name = data_dir + f"PPD_2014_src_1to9_da_{tgt_data_tag}_{tgt_tag}_train.csv"
+    # source_test_file_name = data_dir + f'PPD_2014_src_1to9_da_{tgt_data_tag}_{tgt_tag}_test.csv'
+    # source_train_file_name = data_dir + f"PPD_2014_src_1to8_da_{tgt_data_tag}_{tgt_tag}_train.csv"
+    # source_test_file_name = data_dir + f'PPD_2014_src_1to8_da_{tgt_data_tag}_{tgt_tag}_test.csv'
 
-    # source_train_file_name = data_dir + "PPD_2014_src_1to8_train.csv"
-    # target_train_file_name = data_dir + 'PPD_2014_tgt_10to11_train.csv'
-    # source_test_file_name = data_dir + 'PPD_2014_src_1to8_test.csv'
-    # target_test_file_name = data_dir + 'PPD_2014_tgt_10to11_test.csv'
+    source_train_file_name = data_dir + f"PPD_2014_src_1to9_da_{data_tag}_train.csv"
+    source_test_file_name = data_dir + f'PPD_2014_src_1to9_da_{data_tag}_test.csv'
+    target_train_file_name = data_dir + f'PPD_2014_tgt_10to12_da_{data_tag}_train.csv'
+    target_test_file_name = data_dir + f'PPD_2014_tgt_10to12_ft_{data_tag}_test.csv'
 
-    # source_train_file_name = data_dir + "PPD_2014_src_1to9_train.csv"
-    # source_test_file_name = data_dir + 'PPD_2014_src_1to9_test.csv'
-    # source_train_file_name = data_dir + "PPD_2014_src_1to8_train.csv"
-    # source_test_file_name = data_dir + 'PPD_2014_src_1to8_test.csv'
-    # target_train_file_name = data_dir + 'PPD_2014_tgt_9_train.csv'
-    # target_test_file_name = data_dir + 'PPD_2014_tgt_9_test.csv'
-    # target_train_file_name = 'PPD_2014_tgt_10to11_train.csv'
-    # target_test_file_name = 'PPD_2014_tgt_10to11_test.csv'
-
-    data_dir = f"/Users/yankang/Documents/Data/Data_Open_Analysis_master/Kesci_PPD/PPD_data_output_1620085151/"
-    # source_train_file = "PPD_2014_src_1to9_train.csv"
-    # source_test_file = 'PPD_2014_src_1to9_test.csv'
-
-    source_train_file_name = data_dir + f"PPD_2014_src_1to9_{data_tag}_{tgt_tag}_train.csv"
-    source_test_file_name = data_dir + f'PPD_2014_src_1to9_{data_tag}_{tgt_tag}_test.csv'
-    target_train_file_name = data_dir + f'PPD_2014_tgt_10to11_{data_tag}_{tgt_tag}_train.csv'
-    target_test_file_name = data_dir + f'PPD_2014_tgt_10to11_{data_tag}_{tgt_tag}_test.csv'
+    print(f"load source train from: {source_train_file_name}.")
+    print(f"load target train from: {target_train_file_name}.")
+    print(f"load source test from: {source_test_file_name}.")
+    print(f"load target test from: {target_test_file_name}.")
 
     split_ratio = 1.0
+    # src_tgt_train_dataset, _ = get_datasets(ds_file_name=src_tgt_train_file_name, shuffle=True, split_ratio=split_ratio)
     src_train_dataset, _ = get_datasets(ds_file_name=source_train_file_name, shuffle=True, split_ratio=split_ratio)
     tgt_train_dataset, _ = get_datasets(ds_file_name=target_train_file_name, shuffle=True, split_ratio=split_ratio)
+    tgt_clz_train_dataset, _ = get_datasets(ds_file_name=target_train_file_name, shuffle=True, split_ratio=split_ratio)
     src_test_dataset, _ = get_datasets(ds_file_name=source_test_file_name, shuffle=True, split_ratio=split_ratio)
     tgt_test_dataset, _ = get_datasets(ds_file_name=target_test_file_name, shuffle=True, split_ratio=split_ratio)
 
     tries = 1
     param_comb_list = list()
-    for lr in learning_rate_list:
-        for bs in batch_size_list:
+    for lr in src_learning_rate_list:
+        for bs in src_batch_size_list:
             param_comb_list.append((lr, bs))
 
-    date = get_current_date() + "_PDD"
+    date = get_current_date() + "_PPD_fg_dann"
     timestamp = get_timestamp()
     for param_comb in param_comb_list:
         lr, bs = param_comb
         for version in range(tries):
-            task_id = date + "_" + data_tag + "_" + tgt_tag + "_pw" + str(pos_class_weight) + "_bs" + str(
-                bs) + "_lr" + str(lr) + "_v" + str(version) + "_gd" + str(apply_global_domain_adaption) + "_t" + str(
-                timestamp)
+            train_data_tag = "all" if is_all else "src"
+            using_intr_tag = "intr" + str(True) if using_interaction else str(False)
+            task_id = date + "_" + train_data_tag + "_" + data_tag + "_" + using_intr_tag + "_pw" + str(
+                pos_class_weight) + "_bs" + str(bs) + "_lr" + str(lr) + "_gd" + str(apply_global_domain_adaption) \
+                      + "_mep" + str(max_epochs) + "_ts" + str(timestamp) + "_ve" + str(version)
             print("[INFO] perform task:{0}".format(task_id))
 
-            global_model = create_pdd_global_model(pos_class_weight=pos_class_weight)
+            global_model = create_pdd_global_model(pos_class_weight=pos_class_weight,
+                                                   using_interaction=using_interaction)
             print("[INFO] model created.")
 
-            src_train_loader = get_dataloader(src_train_dataset, batch_size=bs)
+            if is_all:
+                # src_train_loader = get_dataloader(src_tgt_train_dataset, batch_size=bs)
+                pass
+            else:
+                src_train_loader = get_dataloader(src_train_dataset, batch_size=bs)
             tgt_train_loader = get_dataloader(tgt_train_dataset, batch_size=bs)
+            target_clz_train_loader = get_dataloader(tgt_clz_train_dataset, batch_size=tgt_batch_size)
             print("[INFO] train data loaded.")
 
             src_test_loader = get_dataloader(src_test_dataset, batch_size=bs * 4)
@@ -209,20 +233,26 @@ if __name__ == "__main__":
             print("[INFO] test data loaded.")
 
             plat = FederatedDAANLearner(model=global_model,
-                                        source_train_loader=src_train_loader,
+                                        source_da_train_loader=src_train_loader,
                                         source_val_loader=src_test_loader,
-                                        target_train_loader=tgt_train_loader,
+                                        target_da_train_loader=tgt_train_loader,
                                         target_val_loader=tgt_test_loader,
-                                        max_epochs=400,
+                                        target_clz_train_loader=target_clz_train_loader,
+                                        max_epochs=max_epochs,
                                         epoch_patience=epoch_patience)
             plat.set_model_save_info(exp_dir)
+
+            optimizer_param_dict = {"src": {"lr": lr, "momentum": momentum, "weight_decay": weight_decay},
+                                    "tgt": {"lr": tgt_lr, "momentum": momentum, "weight_decay": weight_decay}}
             plat.train_dann(epochs=120,
-                            lr=lr,
                             task_id=task_id,
                             metric=metrics,
                             apply_global_domain_adaption=apply_global_domain_adaption,
                             global_domain_adaption_lambda=global_domain_adaption_lambda,
-                            momentum=momentum,
-                            weight_decay=weight_decay)
+                            use_target_classifier=use_target_classifier,
+                            optimizer_param_dict=optimizer_param_dict,
+                            monitor_source=monitor_source,
+                            num_tgt_clz_train_iter=num_tgt_clz_train_iter,
+                            tgt_clz_interval=tgt_clz_interval)
 
             global_model.print_parameters()

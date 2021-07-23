@@ -1,6 +1,5 @@
 # 2 indicates wide features of active party (with Y) and 1 indicates feature groups of passive party
 group_ind_list = [2, 1, 1, 1, 1, 1, 1]
-# 1to8
 column_name_list = ['UserInfo_14',
                     'UserInfo_18',
                     'UserInfo_15',

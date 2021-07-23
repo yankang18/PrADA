@@ -1,5 +1,6 @@
 import os
 
+import numpy as np
 import torch
 import torch.nn as nn
 
@@ -47,141 +48,138 @@ class BiFeatureInteractionComputer(object):
         pass
 
     def build(self, feat_list):
-        return None
+        return feat_list
 
     def fit(self, feat_list):
-        return None
+        feat_intr_list = list()
+        for i in range(len(feat_list) - 1):
+            for j in range(i + 1, len(feat_list)):
+                feat_intr_list.append(torch.cat((feat_list[i], feat_list[j]), dim=1))
+        return feat_intr_list
 
     def build_fit(self, feat_list):
-        self.build(feat_list)
         return self.fit(feat_list)
 
 
-class AttentiveFeatureInteractionComputer(object):
-    def __init__(self, transform_matrix_dict=None):
-        self.transform_matrix_dict = transform_matrix_dict
-        self.score_map = None
-
-    def load_model(self, model_dict):
-        if self.transform_matrix_dict is None:
-            return
-
-        for key, model_path in model_dict.items():
-            self.transform_matrix_dict[key].load_state_dict(torch.load(model_path))
-            print(f"[INFO] load transform matrix model from {model_path}")
-
-    def save_model(self, model_root, appendix):
-        if self.transform_matrix_dict is None:
-            return None
-        transform_matrix_path_dict = dict()
-        for key, trans_model in self.transform_matrix_dict.items():
-            trans_model_name = "trans_model_" + key + "_" + appendix
-            trans_model_path = os.path.join(model_root, trans_model_name)
-            torch.save(trans_model.state_dict(), trans_model_path)
-            transform_matrix_path_dict[key] = trans_model_path
-            print(f"[INFO] saved transform matrix model {[trans_model_name]} to {trans_model_path}")
-        return transform_matrix_path_dict
-
-    def freeze(self, is_freeze=False):
-        if self.transform_matrix_dict is None:
-            return
-        for _, val in self.transform_matrix_dict.items():
-            for param in val.parameters():
-                # print("AttentiveFeatureComputer requires_grad:", not is_freeze)
-                param.requires_grad = not is_freeze
-
-    def parameters(self):
-        param_list = list()
-        if self.transform_matrix_dict is None:
-            return param_list
-        for _, val in self.transform_matrix_dict.items():
-            param_list += list(val.parameters())
-        return param_list
-
-    def change_to_train_mode(self):
-        if self.transform_matrix_dict is None:
-            return
-        for _, val in self.transform_matrix_dict.items():
-            val.train()
-
-    def change_to_eval_mode(self):
-        if self.transform_matrix_dict is None:
-            return
-        for _, val in self.transform_matrix_dict.items():
-            val.eval()
-
-    def transform(self, feat_a, idx_a, idx_b):
-        if self.transform_matrix_dict is None:
-            return feat_a
-
-        key = compute_interactive_key(idx_a, idx_b)
-        trans_matrix = self.transform_matrix_dict.get(key)
-        if trans_matrix:
-            t_feat_a = trans_matrix.transform(feat_a)
-        else:
-            key = compute_interactive_key(idx_b, idx_a)
-            trans_matrix = self.transform_matrix_dict[key]
-            t_feat_a = trans_matrix.transpose_transform(feat_a)
-        return t_feat_a
-
-    def compute_score(self, feat_a, feat_b, idx_a, idx_b):
-        t_feat_a = self.transform(feat_a, idx_a, idx_b)
-        # print("#t_feat_a", t_feat_a)
-        # print("#feat_b", feat_b)
-        output = torch.mul(t_feat_a, feat_b)
-        # print("#output", output)
-        return torch.sum(output, dim=1, keepdim=True)
-
-    def compute_score_map(self, feat_list):
-        score_map = dict()
-        for idx_a, feat_a in enumerate(feat_list):
-            for idx_b, feat_b in enumerate(feat_list):
-                # if idx_a == idx_b:
-                #     continue
-
-                key = compute_interactive_key(idx_a, idx_b)
-                score = self.compute_score(feat_a, feat_b, idx_a, idx_b)
-                # print("#score1:", score)
-                score = torch.exp(score)
-                # print("#score2:", score)
-
-                if score_map.get(key) is None:
-                    score_map[key] = score
-                    score_map[compute_interactive_key(idx_b, idx_a)] = score
-
-        return score_map
-
-    def compute_interactive_reprs(self, feat_list):
-        interactive_feat_list = list()
-        num_feat = len(feat_list)
-        for idx_a in range(num_feat):
-            # score_list = list()
-            interactive_feat = torch.zeros(feat_list[idx_a].shape)
-            all_score = torch.zeros((feat_list[idx_a].shape[0], 1))
-            for idx_b in range(0, num_feat):
-                # if idx_a == idx_b:
-                #     continue
-
-                key = compute_interactive_key(idx_b, idx_a)
-                score = self.score_map[key]
-                all_score += score
-                # score_list.append(score)
-                trans_feat = self.transform(feat_list[idx_b], idx_b, idx_a)
-                interactive_feat += score * trans_feat
-            interactive_feat = interactive_feat / all_score
-            interactive_feat_list.append(interactive_feat)
-        return interactive_feat_list
-
-    def build(self, feat_list):
-        self.score_map = self.compute_score_map(feat_list)
-        return self.score_map
-
-    def fit(self, feat_list):
-        return self.compute_interactive_reprs(feat_list)
-
-    def build_fit(self, feat_list):
-        self.build(feat_list)
-        return self.fit(feat_list)
+# class AttentiveFeatureInteractionComputer(object):
+#     def __init__(self, transform_matrix_dict=None):
+#         self.transform_matrix_dict = transform_matrix_dict
+#         self.score_map = None
+#
+#     def load_model(self, model_dict):
+#         if self.transform_matrix_dict is None:
+#             return
+#
+#         for key, model_path in model_dict.items():
+#             self.transform_matrix_dict[key].load_state_dict(torch.load(model_path))
+#             print(f"[INFO] load transform matrix model from {model_path}")
+#
+#     def save_model(self, model_root, appendix):
+#         if self.transform_matrix_dict is None:
+#             return None
+#         transform_matrix_path_dict = dict()
+#         for key, trans_model in self.transform_matrix_dict.items():
+#             trans_model_name = "trans_model_" + key + "_" + appendix
+#             trans_model_path = os.path.join(model_root, trans_model_name)
+#             torch.save(trans_model.state_dict(), trans_model_path)
+#             transform_matrix_path_dict[key] = trans_model_path
+#             print(f"[INFO] saved transform matrix model {[trans_model_name]} to {trans_model_path}")
+#         return transform_matrix_path_dict
+#
+#     def freeze(self, is_freeze=False):
+#         if self.transform_matrix_dict is None:
+#             return
+#         for _, val in self.transform_matrix_dict.items():
+#             for param in val.parameters():
+#                 # print("AttentiveFeatureComputer requires_grad:", not is_freeze)
+#                 param.requires_grad = not is_freeze
+#
+#     def parameters(self):
+#         param_list = list()
+#         if self.transform_matrix_dict is None:
+#             return param_list
+#         for _, val in self.transform_matrix_dict.items():
+#             param_list += list(val.parameters())
+#         return param_list
+#
+#     def change_to_train_mode(self):
+#         if self.transform_matrix_dict is None:
+#             return
+#         for _, val in self.transform_matrix_dict.items():
+#             val.train()
+#
+#     def change_to_eval_mode(self):
+#         if self.transform_matrix_dict is None:
+#             return
+#         for _, val in self.transform_matrix_dict.items():
+#             val.eval()
+#
+#     def transform(self, feat_a, idx_a, idx_b):
+#         if self.transform_matrix_dict is None:
+#             return feat_a
+#
+#         key = compute_interactive_key(idx_a, idx_b)
+#         trans_matrix = self.transform_matrix_dict.get(key)
+#         if trans_matrix:
+#             t_feat_a = trans_matrix.transform(feat_a)
+#         else:
+#             key = compute_interactive_key(idx_b, idx_a)
+#             trans_matrix = self.transform_matrix_dict[key]
+#             t_feat_a = trans_matrix.transpose_transform(feat_a)
+#         return t_feat_a
+#
+#     def compute_score(self, feat_a, feat_b, idx_a, idx_b):
+#         t_feat_a = self.transform(feat_a, idx_a, idx_b)
+#         # print("#t_feat_a", t_feat_a)
+#         # print("#feat_b", feat_b)
+#         output = torch.mul(t_feat_a, feat_b)
+#         # print("#output", output)
+#         return torch.sum(output, dim=1, keepdim=True)
+#
+#     def compute_score_map(self, feat_list):
+#         score_map = dict()
+#         for idx_a, feat_a in enumerate(feat_list):
+#             for idx_b, feat_b in enumerate(feat_list):
+#                 key = compute_interactive_key(idx_a, idx_b)
+#                 score = self.compute_score(feat_a, feat_b, idx_a, idx_b)
+#                 # print("#score1:", score)
+#                 score = torch.exp(score)
+#                 # print("#score2:", score)
+#
+#                 if score_map.get(key) is None:
+#                     score_map[key] = score
+#                     score_map[compute_interactive_key(idx_b, idx_a)] = score
+#
+#         return score_map
+#
+#     def compute_interactive_reprs(self, feat_list):
+#         interactive_feat_list = list()
+#         num_feat = len(feat_list)
+#         for idx_a in range(num_feat):
+#             # score_list = list()
+#             interactive_feat = torch.zeros(feat_list[idx_a].shape)
+#             all_score = torch.zeros((feat_list[idx_a].shape[0], 1))
+#             for idx_b in range(0, num_feat):
+#                 key = compute_interactive_key(idx_b, idx_a)
+#                 score = self.score_map[key]
+#                 all_score += score
+#                 # score_list.append(score)
+#                 trans_feat = self.transform(feat_list[idx_b], idx_b, idx_a)
+#                 interactive_feat += score * trans_feat
+#             interactive_feat = interactive_feat / all_score
+#             interactive_feat_list.append(interactive_feat)
+#         return interactive_feat_list
+#
+#     def build(self, feat_list):
+#         self.score_map = self.compute_score_map(feat_list)
+#         return self.score_map
+#
+#     def fit(self, feat_list):
+#         return self.compute_interactive_reprs(feat_list)
+#
+#     def build_fit(self, feat_list):
+#         self.build(feat_list)
+#         return self.fit(feat_list)
 
 
 class InteractionModel(object):
@@ -323,40 +321,47 @@ class InteractionModel(object):
         return fg_repr_list
 
     def compute_output_list(self, fg_list):
-        fg_repr_list = self._compute_fg_repr_list(fg_list)
-        fg_repr_int_list = self.interactive_feature_computer.build_fit(fg_repr_list)
+        fg_intr_list = self.interactive_feature_computer.build_fit(fg_list)
+        fg_intr_repr_list = self._compute_fg_repr_list(fg_intr_list)
+        # fg_repr_int_list = self.interactive_feature_computer.build_fit(fg_repr_list)
 
         # fg_intr_list = self.int_feat_computer.build_fit(fg_list)
         # fg_repr_intr_list = self._compute_fg_repr_list(fg_intr_list)
 
         output_list = []
-        for fg_repr_int, aggregator in zip(fg_repr_int_list, self.aggregator_list):
+        for fg_repr_int, aggregator in zip(fg_intr_repr_list, self.aggregator_list):
             output_list.append(aggregator(fg_repr_int))
 
         return output_list
 
-    def compute_loss(self, src_data_list, tgt_data_list, src_labels, tgt_labels, **kwargs):
+    def compute_loss(self, src_feat_list, tgt_feat_list, src_labels, tgt_labels, **kwargs):
         alpha = kwargs["alpha"]
 
-        num_sample = src_data_list[0].shape[0] + tgt_data_list[0].shape[0]
+        num_sample = src_feat_list[0].shape[0] + tgt_feat_list[0].shape[0]
 
-        # src_intr_feat_list = self.int_feat_computer.build_fit(src_data_list)
-        # tgt_intr_feat_list = self.int_feat_computer.build_fit(tgt_data_list)
-
+        # src_fg_repr_list = list()
+        # tgt_fg_repr_list = list()
+        # for src_data, tgt_data, extractor in zip(src_data_list, tgt_data_list, self.extractor_list):
+        #     src_fg_repr_list.append(extractor(src_data))
+        #     tgt_fg_repr_list.append(extractor(tgt_data))
+        #
+        # src_intr_feat_list = self.interactive_feature_computer.build_fit(src_fg_repr_list)
+        # tgt_intr_feat_list = self.interactive_feature_computer.build_fit(tgt_fg_repr_list)
+        src_intr_feat_list = self.interactive_feature_computer.build_fit(src_feat_list)
+        tgt_intr_feat_list = self.interactive_feature_computer.build_fit(tgt_feat_list)
         src_fg_repr_list = list()
         tgt_fg_repr_list = list()
-        for src_data, tgt_data, extractor in zip(src_data_list, tgt_data_list, self.extractor_list):
+        for src_data, tgt_data, extractor in zip(src_intr_feat_list, tgt_intr_feat_list, self.extractor_list):
             src_fg_repr_list.append(extractor(src_data))
             tgt_fg_repr_list.append(extractor(tgt_data))
-
-        src_intr_feat_list = self.interactive_feature_computer.build_fit(src_fg_repr_list)
-        tgt_intr_feat_list = self.interactive_feature_computer.build_fit(tgt_fg_repr_list)
 
         total_domain_loss = torch.tensor(0.)
         src_output_list = list()
         tgt_output_list = list()
-        for src_feat, tgt_feat, aggregator, discriminator in zip(src_intr_feat_list, tgt_intr_feat_list,
+        for src_feat, tgt_feat, aggregator, discriminator in zip(src_fg_repr_list, tgt_fg_repr_list,
                                                                  self.aggregator_list, self.discriminator_list):
+        # for src_feat, tgt_feat, aggregator, discriminator in zip(src_intr_feat_list, tgt_intr_feat_list,
+        #                                                          self.aggregator_list, self.discriminator_list):
             domain_feat = torch.cat((src_feat, tgt_feat), dim=0)
             domain_labels = torch.cat((src_labels, tgt_labels), dim=0)
             perm = torch.randperm(num_sample)
@@ -375,11 +380,13 @@ class InteractionModel(object):
         return total_domain_loss, src_output_list, tgt_output_list
 
     def calculate_domain_discriminator_correctness(self, fg_list, is_source=True):
-        fg_repr_list = self._compute_fg_repr_list(fg_list)
-        fg_repr_int_list = self.interactive_feature_computer.build_fit(fg_repr_list)
+        fg_intr_list = self.interactive_feature_computer.build_fit(fg_list)
+        fg_intr_repr_list = self._compute_fg_repr_list(fg_intr_list)
+        # fg_repr_list = self._compute_fg_repr_list(fg_list)
+        # fg_repr_int_list = self.interactive_feature_computer.build_fit(fg_repr_list)
 
         corr_list = list()
-        for fgi, extractor, discriminator in zip(fg_repr_int_list, self.extractor_list, self.discriminator_list):
+        for fgi, extractor, discriminator in zip(fg_intr_repr_list, self.extractor_list, self.discriminator_list):
             if is_source:
                 labels = torch.zeros(fgi.shape[0]).long()
             else:

@@ -56,12 +56,12 @@ if __name__ == "__main__":
             test_loader = get_cell_manager_dataloader(test_ds, batch_size=bs * 4)
 
             plat = FederatedDAANLearner(model=daan_model,
-                                        source_train_loader=None,
+                                        source_da_train_loader=None,
                                         source_val_loader=None,
-                                        target_train_loader=train_loader,
+                                        target_da_train_loader=train_loader,
                                         target_val_loader=test_loader,
                                         epoch_patience=epoch_patience,
                                         number_validations=number_validations)
 
             plat.set_model_save_info(exp_dir)
-            plat.train_wo_adaption(epochs=500, lr=lr, source=False, task_id=task_id)
+            plat.train_wo_adaption(epochs=500, lr=lr, train_source=False, task_id=task_id)

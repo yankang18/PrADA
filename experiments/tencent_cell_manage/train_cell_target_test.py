@@ -1,7 +1,7 @@
 from datasets.cell_manage_dataloader import get_cell_manager_dataloader_ob
 from experiments.tencent_cell_manage.train_cell_dann import create_global_dann_model
 
-from utils import test_classification
+from utils import test_classifier
 
 if __name__ == "__main__":
     # dann_root_folder = "cell_manage_dann"
@@ -34,5 +34,5 @@ if __name__ == "__main__":
     B_test_loader = get_cell_manager_dataloader_ob(dir=B_dir, batch_size=batch_size * 2, data_mode="test")
     print("[INFO] data loaded ...")
 
-    acc, auc, ks = test_classification(wrapper, B_test_loader)
+    acc, auc, ks = test_classifier(wrapper, B_test_loader)
     print(f"acc:{acc}, auc:{auc}, ks:{ks}")

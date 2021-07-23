@@ -3,7 +3,8 @@ import pandas as pd
 from sklearn.utils import shuffle
 
 from data_process.benchmark_utils import run_benchmark, save_benchmark_result, find_args_for_best_metric
-from data_process.census_process.mapping_resource import continuous_cols, categorical_cols, target_col_name
+from data_process.census_process.mapping_resource import categorical_cols, continuous_cols_v2, continuous_cols_v3, \
+    continuous_cols_v4, target_col_name
 
 COLUMNS = ['age',
            'education_year',
@@ -32,9 +33,10 @@ def train_benchmark(samples_train, samples_test, tag):
     print(f"[INFO] test_data shape:{test_data.shape}")
     print(f"[INFO] test_label shape:{test_label.shape}， {np.sum(test_label)}")
 
-    n_tree_list = [200, 250, 300, 350, 400]
-    # max_depth_list = [2, 4, 6, 8]
-    max_depth_list = [2, 4]
+    n_tree_list = [200, 300, 400]
+    # n_tree_list = [10, 20, 30]
+    max_depth_list = [2, 4, 6]
+    # max_depth_list = [2, 4]
     result_list = list()
     for n_tree in n_tree_list:
         for max_depth in max_depth_list:
@@ -158,7 +160,7 @@ def train_adult_to_95():
     train_benchmark(comb_samples_train, census95_samples_test)
 
 
-def train_on_dann(file_dict, columns=None):
+def train_on_dann(file_dict, continuous_cols, columns=None, data_tag=None, label_name='income_label'):
     source_train_file = file_dict['source_train_file']
     target_train_file = file_dict['target_train_file']
     target_test_file = file_dict['target_test_file']
@@ -177,28 +179,23 @@ def train_on_dann(file_dict, columns=None):
     tgt_train_num = adult_target_train.shape[0]
     tgt_test_num = adult_target_test.shape[0]
 
-    src_train_pos_num = adult_source_train[adult_source_train['income_label'] == 1].shape[0]
-    tgt_train_pos_num = adult_target_train[adult_target_train['income_label'] == 1].shape[0]
-    tgt_test_pos_num = adult_target_test[adult_target_test['income_label'] == 1].shape[0]
+    src_train_pos_num = adult_source_train[adult_source_train[label_name] == 1].shape[0]
+    tgt_train_pos_num = adult_target_train[adult_target_train[label_name] == 1].shape[0]
+    tgt_test_pos_num = adult_target_test[adult_target_test[label_name] == 1].shape[0]
 
     src_train_pos_ratio = src_train_pos_num / src_train_num
     tgt_train_pos_ratio = tgt_train_pos_num / tgt_train_num
     tgt_test_pos_ratio = tgt_test_pos_num / tgt_test_num
 
-    src_train_neg_num = adult_source_train[adult_source_train['income_label'] == 0].shape[0]
-    tgt_train_neg_num = adult_target_train[adult_target_train['income_label'] == 0].shape[0]
-    tgt_test_neg_num = adult_target_test[adult_target_test['income_label'] == 0].shape[0]
+    src_train_neg_num = adult_source_train[adult_source_train[label_name] == 0].shape[0]
+    tgt_train_neg_num = adult_target_train[adult_target_train[label_name] == 0].shape[0]
+    tgt_test_neg_num = adult_target_test[adult_target_test[label_name] == 0].shape[0]
 
     print(
         f"source_train shape:{src_train_num}, pos:{src_train_pos_num}({src_train_pos_ratio}), neg:{src_train_neg_num}")
     print(
         f"target_train shape:{tgt_train_num}, pos:{tgt_train_pos_num}({tgt_train_pos_ratio}), neg:{tgt_train_neg_num}")
     print(f"target_test shape:{tgt_test_num}, pos:{tgt_test_pos_num}({tgt_test_pos_ratio}), neg:{tgt_test_neg_num}")
-
-    adult_target_train = adult_target_train.values
-    adult_target_test = adult_target_test.values
-    adult_target_train = shuffle(adult_target_train)
-    adult_target_test = shuffle(adult_target_test)
 
     print("====== train model only on local target =======")
     tgt_train_label = adult_target_train.values[:, -1].reshape(-1, 1)
@@ -207,25 +204,35 @@ def train_on_dann(file_dict, columns=None):
     local_target_test_data = np.concatenate([adult_target_test[continuous_cols].values, tgt_test_label], axis=1)
     print(f"local_target_train_data shape:{local_target_train_data.shape}")
     print(f"local_target_test_data shape:{local_target_test_data.shape}")
-    tag = "local"
+    tag = "local" + '_' + data_tag
     local_train_data = shuffle(local_target_train_data)
     local_test_data = shuffle(local_target_test_data)
     train_benchmark(local_train_data, local_test_data, tag)
     print('\n')
-    print("=========================================")
-    print("====== train model only on target =======")
-    print("=========================================")
-    tag = "tgt"
-    train_benchmark(adult_target_train, adult_target_test, tag)
-    print('\n')
-    print("=========================================")
-    print("====== train model on src + tgt =========")
-    print("=========================================")
-    tag = "src_tgt"
-    adult_source_train = adult_source_train.values
-    adult_all_train = np.concatenate([adult_source_train, adult_target_train], axis=0)
-    adult_all_train = shuffle(adult_all_train)
-    train_benchmark(adult_all_train, adult_target_test, tag)
+
+    # adult_target_train = adult_target_train.values
+    # adult_target_test = adult_target_test.values
+    # adult_target_train = shuffle(adult_target_train)
+    # adult_target_test = shuffle(adult_target_test)
+
+    # print("=========================================")
+    # print("====== train model only on target =======")
+    # print("=========================================")
+    # tag = "tgt" + '_' + data_tag
+    # train_benchmark(adult_target_train, adult_target_test, tag)
+    # print('\n')
+
+    # print("=========================================")
+    # print("====== train model on src + tgt =========")
+    # print("=========================================")
+    # if data_tag:
+    #     tag = "src_tgt" + '_' + data_tag
+    # else:
+    #     tag = "src_tgt"
+    # adult_source_train = adult_source_train.values
+    # adult_all_train = np.concatenate([adult_source_train, adult_target_train], axis=0)
+    # adult_all_train = shuffle(adult_all_train)
+    # train_benchmark(adult_all_train, adult_target_test, tag)
 
 
 def train_adult():
@@ -265,49 +272,16 @@ def train_adult():
 
 
 if __name__ == "__main__":
-    # prepare_census_95_train_data(num_sample=1000)
-    # train_census_adult()
-    # train_census_95()
-    # train_adult_to_95()
-    # train_adult()
-
-    # source_train_file = pd.read_csv('../datasets/census_processed/adult_source_train.csv', skipinitialspace=True)
-    # source_train_file = adult_source_train[COLUMNS]
-    # target_train_file = pd.read_csv('../datasets/census_processed/adult_target_train.csv', skipinitialspace=True)
-    # target_train_file = adult_target_train[COLUMNS]
-    # adult_target_test = pd.read_csv('../datasets/census_processed/adult_target_test.csv', skipinitialspace=True)
-    # adult_target_test = adult_target_test[COLUMNS]
-
-    # source_train_file = "adult_source_train.csv"
-    # target_train_file = 'adult_target_train.csv'
-    # target_test_file = 'adult_target_test.csv'
-    # data_dir = '../datasets/census_processed/'
-    # columns_list = COLUMNS
-
-    # source_train_file = "PPD_2014_1to9_train.csv"
-    # target_train_file = 'PPD_2014_10to12_train.csv'
-    # # source_test_file = 'PPD_2014_1to9_test.csv'
-    # target_test_file = 'PPD_2014_10to12_test.csv'
-    # data_dir = "/Users/yankang/Documents/Data/Data_Open_Analysis_master/Kesci_PPD/PPD_data_v1/"
-    # columns_list = None
-
-    # source_train_file = 'degree_source_train.csv'
-    # target_train_file = 'degree_target_train.csv'
-    # target_test_file = 'degree_target_test.csv'
-    # data_dir = '../datasets/census_processed/'
-    # columns_list = COLUMNS
-
-    # source_train_file = 'undergrad_census9495_da_train.csv'
-    # target_train_file = 'grad_census9495_da_train.csv'
-    # target_test_file = 'grad_census9495_da_test.csv'
-
-    source_train_file = 'undergrad_census9495_da_300_train.csv'
-    target_train_file = 'grad_census9495_da_300_train.csv'
-    target_test_file = 'grad_census9495_da_300_test.csv'
 
     data_dir = "/Users/yankang/Documents/Data/census/output/"
+    tag = "all4000pos004v4"
+    # tag = "all4000pos002"
+    # tag = "all4000pos001"
+    source_train_file = f'undergrad_census9495_da_{tag}_train.csv'
+    target_train_file = f'grad_census9495_ft_{tag}_train.csv'
+    target_test_file = f'grad_census9495_ft_{tag}_test.csv'
 
-    columns_list = continuous_cols + categorical_cols + [target_col_name]
+    columns_list = continuous_cols_v4 + categorical_cols + [target_col_name]
     print("[INFO] columns_list:", len(columns_list), columns_list)
 
     file_dict = dict()
@@ -315,4 +289,8 @@ if __name__ == "__main__":
     file_dict['target_train_file'] = target_train_file
     file_dict['target_test_file'] = target_test_file
     file_dict['data_dir'] = data_dir
-    train_on_dann(file_dict, columns=columns_list)
+    train_on_dann(file_dict,
+                  columns=columns_list,
+                  data_tag=tag,
+                  label_name=target_col_name,
+                  continuous_cols=continuous_cols_v4)

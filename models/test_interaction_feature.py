@@ -1,5 +1,5 @@
 from models.classifier import TransformMatrix
-from models.interaction_models import AttentiveFeatureComputer, compute_interactive_key
+from models.interaction_models import AttentiveFeatureInteractionComputer, compute_interactive_key
 import numpy as np
 import torch
 
@@ -20,7 +20,7 @@ def initialize_transform_matrix_dict(hidden_dim_list):
     return trans_matrix_dict
 
 
-class TestInteractiveFeatureComputer(AttentiveFeatureComputer):
+class TestInteractiveFeatureComputer(AttentiveFeatureInteractionComputer):
 
     def __init__(self, transform_matrix_dict):
         super(TestInteractiveFeatureComputer, self).__init__(transform_matrix_dict)
@@ -52,7 +52,7 @@ if __name__ == "__main__":
     transform_matrix_dict = initialize_transform_matrix_dict(hidden_dim_list)
     print("transform_matrix_dict: \n", transform_matrix_dict)
 
-    computer = AttentiveFeatureComputer(transform_matrix_dict)
+    computer = AttentiveFeatureInteractionComputer(transform_matrix_dict)
 
     feat_tensor_list = [torch.tensor(f, dtype=torch.float) for f in feat_list]
 
