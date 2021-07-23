@@ -12,6 +12,15 @@ from sklearn.metrics import roc_auc_score, accuracy_score
 from statistics_utils import kl_divergence
 
 
+def compute_parameter_size(feature_extractor_architecture):
+    all_num_param = 0
+    for archi in feature_extractor_architecture:
+        for i in range(1, len(archi)):
+            all_num_param += archi[i] * archi[i - 1]
+        print(f"{archi} has # of parameters:{all_num_param}")
+    return all_num_param
+
+
 def create_id_from_hyperparameters(hyperparameter_dict):
     hyperparam_list = [key + str(value) for key, value in hyperparameter_dict.items()]
     return "_".join(hyperparam_list)
@@ -203,7 +212,8 @@ def produce_data_for_distribution(model,
                                   tgt_train_loader,
                                   feature_group_name_list,
                                   to_dir,
-                                  tag):
+                                  tag,
+                                  version="0"):
     src_train_iter = iter(src_train_loader)
     tgt_train_iter = iter(tgt_train_loader)
 
@@ -216,11 +226,11 @@ def produce_data_for_distribution(model,
     for src_fg_emb, tgt_fg_emb, name in zip(src_fg_emb_list, tgt_fg_emb_list, feature_group_name_list):
         df_src_data = pd.DataFrame(data=src_fg_emb.detach().numpy())
         df_tgt_data = pd.DataFrame(data=tgt_fg_emb.detach().numpy())
-        file_fill_name = to_dir + "/prada_{}_src_emb_{}.csv".format(tag, name)
+        file_fill_name = to_dir + "/prada_{}_src_emb_{}_v{}.csv".format(tag, name, version)
         df_src_data.to_csv(file_fill_name, header=False, index=False)
         print(f"save df_src_data to {file_fill_name} with shape {df_src_data.shape}")
 
-        file_fill_name = to_dir + "/prada_{}_tgt_emb_{}.csv".format(tag, name)
+        file_fill_name = to_dir + "/prada_{}_tgt_emb_{}_v{}.csv".format(tag, name, version)
         df_tgt_data.to_csv(file_fill_name, header=False, index=False)
         print(f"save df_tgt_data to {file_fill_name} with shape {df_tgt_data.shape}")
 
@@ -234,7 +244,7 @@ def compute_kl_divergence(src_data, tgt_data, n_components):
     return kl
 
 
-def draw_distribution(df_src_data, df_tgt_data, num_points, dim_reducer, tag, feature_group_name, to_dir):
+def draw_distribution(df_src_data, df_tgt_data, num_points, dim_reducer, tag, feature_group_name, to_dir, version):
     print("[INFO] draw distribution")
 
     df_src_tgt_data = pd.concat([df_src_data, df_tgt_data], axis=0)
@@ -246,16 +256,19 @@ def draw_distribution(df_src_data, df_tgt_data, num_points, dim_reducer, tag, fe
     print(f"[INFO] src_data shape:{df_src_data.shape}")
     print(f"[INFO] tgt_data shape:{df_tgt_data.shape}")
     print(f"[INFO] all_data shape:{all_data.shape}")
+    print(f"[INFO] KL:{dim_reducer.kl_divergence_}")
 
     # estimate KL divergence
-    kl = compute_kl_divergence(all_data[:num_src], all_data[-num_src:], all_data.shape[1])
+    kl = compute_kl_divergence(src_data=all_data[:num_src],
+                               tgt_data=all_data[-num_src:],
+                               n_components=all_data.shape[1])
 
     plt.figure(figsize=(8, 8))
     plt.scatter(all_data[:num_src, 0], all_data[:num_src, 1], s=10, c='r')
     plt.scatter(all_data[-num_src:, 0], all_data[-num_src:, 1], s=10, c='b')
     plt.title(tag + "-" + feature_group_name)
     plt.xlabel(f"KL={kl}")
-    file_full_name = to_dir + "distr_{}_{}_{}.png".format(tag, feature_group_name, num_src)
+    file_full_name = to_dir + "distr_{}_{}_{}_v{}.png".format(tag, feature_group_name, num_src, version)
     plt.savefig(file_full_name)
     print(f"[INFO] save fig to {file_full_name}")
     # plt.show()
