@@ -215,8 +215,6 @@ if __name__ == "__main__":
                                         validation_batch_interval=5)
             plat.set_model_save_info(exp_dir)
 
-            # optimizer_param_dict = {"src": {"lr": lr, "momentum": momentum, "weight_decay": weight_decay},
-            #                         "tgt": {"lr": lr, "momentum": momentum, "weight_decay": weight_decay}}
             plat.train_wo_adaption(epochs=epochs,
                                    lr=lr,
                                    train_source=is_train_source,

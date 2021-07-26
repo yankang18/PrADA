@@ -1,37 +1,51 @@
 
-# feature_extractor_architecture_list = [[28, 56, 28, 14],
-#                                        [25, 50, 25, 12],
-#                                        [36, 72, 36, 18],
-#                                        [27, 54, 27, 13],
-#                                        [20, 40, 20, 10]
-#                                        ]
-feature_extractor_architecture_list = [[28, 56, 28, 14],
-                                       [25, 50, 25, 12],
-                                       [56, 86, 56, 18],
-                                       [27, 54, 27, 13]]
+fg_feature_extractor_architecture_list = [[28, 56, 28, 14],
+                                          [25, 50, 25, 12],
+                                          [56, 86, 56, 18],
+                                          [27, 54, 27, 13]]
 
-# feature_extractor_for_intr_architecture_list = [[53, 106, 53, 26],
-#                                                 [84, 142, 84, 32],
-#                                                 [55, 110, 55, 27],
-#                                                 [81, 136, 81, 30],
-#                                                 [52, 104, 52, 25],
-#                                                 [83, 140, 83, 31]]
+intr_fg_feature_extractor_for_architecture_list = [[53, 78, 53, 15],
+                                                   [84, 120, 84, 20],
+                                                   [55, 81, 55, 15],
+                                                   [81, 120, 81, 20],
+                                                   [52, 78, 52, 15],
+                                                   [83, 120, 83, 20]]
 
-feature_extractor_for_intr_architecture_list = [[53, 78, 53, 15],
-                                                [84, 120, 84, 20],
-                                                [55, 81, 55, 15],
-                                                [81, 120, 81, 20],
-                                                [52, 78, 52, 15],
-                                                [83, 120, 83, 20]]
-
-pre_train_dann_hypterparameters = {
+pre_train_fg_dann_hyperparameters = {
+    "using_interaction": True,
+    "momentum": 0.99,
+    "weight_decay": 0.00001,
     "lr": 6e-4,
     "batch_size": 128,
-    "apply_global_domain_adaption": False,
-    "global_domain_adaption_lambda": 1.0,
-    "pos_class_weight": 1.0,
+    "max_epoch": 600,
     "epoch_patience": 2,
-    "valid_metric": ('ks', 'auc'),
-    # "data_tag": "all4000pos004v4"
-    "data_tag": "all4000pos002"
+    "valid_metric": ('ks', 'auc')
+}
+
+fine_tune_fg_dann_hyperparameters = {
+    "using_interaction": True,
+    "load_global_classifier": False,
+    "momentum": 0.99,
+    "weight_decay": 0.0,
+    "lr": 8e-4,
+    "batch_size": 128,
+    "valid_metric": ('ks', 'auc')
+}
+
+data_dir = "/Users/yankang/Documents/Data/census/output/"
+# data_tag = "all4000pos001"
+data_tag = 'all4000pos001v2'
+# data_tag = 'all4000pos004v4'
+
+data_hyperparameters = {
+    # "data_dir": "/Users/yankang/Documents/Data/census/output/",
+    "source_train_file_name": data_dir + f'undergrad_census9495_da_{data_tag}_train.csv',
+    "target_train_file_name": data_dir + f'grad_census9495_da_{data_tag}_train.csv',
+    "source_test_file_name": data_dir + f'undergrad_census9495_da_{data_tag}_test.csv',
+    "target_test_file_name": data_dir + f'grad_census9495_ft_{data_tag}_test.csv',
+
+    "census_fg_dann_model_dir": "census_fg_dann",
+    "census_fg_ft_target_model_dir": "census_fg_target",
+    "census_no-fg_dann_model_dir": "census_no-fg_dann",
+    "census_no-fg_ft_target_model_dir": "census_no-fg_target"
 }

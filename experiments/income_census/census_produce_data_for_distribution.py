@@ -81,9 +81,6 @@ if __name__ == "__main__":
     source_train_file_name = data_dir + f'undergrad_census9495_da_{data_tag}_train.csv'
     target_train_file_name = data_dir + f'grad_census9495_da_{data_tag}_train.csv'
 
-    # source_train_file_name = data_dir + 'undergrad_census9495_da_300_train.csv'
-    # target_train_file_name = data_dir + 'grad_census9495_da_300_train.csv'
-
     # load pre-trained model
     print("[INFO] load pre-trained model.")
     if use_feature_group:
