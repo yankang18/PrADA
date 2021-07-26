@@ -84,11 +84,11 @@ if __name__ == "__main__":
     # load pre-trained model
     print("[INFO] load pre-trained model.")
     if use_feature_group:
-        model = fg_dann.create_global_model(using_interaction=using_interaction)
+        model = fg_dann.create_fg_census_global_model(using_interaction=using_interaction)
     else:
-        model = no_fg_dann.create_global_model(pos_class_weight=1,
-                                               aggregation_dim=aggregation_dim,
-                                               num_wide_feature=5)
+        model = no_fg_dann.create_no_fg_census_global_model(pos_class_weight=1,
+                                                            aggregation_dim=aggregation_dim,
+                                                            num_wide_feature=5)
 
     model.load_model(root=dann_root_folder,
                      task_id=dann_task_id,

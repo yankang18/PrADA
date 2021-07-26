@@ -1,5 +1,5 @@
 from datasets.census_dataloader import get_income_census_dataloaders
-from experiments.income_census.train_census_fg_dann import create_global_model
+from experiments.income_census.train_census_fg_dann import create_fg_census_global_model
 from utils import test_classifier
 
 if __name__ == "__main__":
@@ -10,7 +10,7 @@ if __name__ == "__main__":
     dann_task_id = '20210506_DEGREE_0.0005_64_1620253871'
 
     # Load models
-    model = create_global_model(pos_class_weight=1.0)
+    model = create_fg_census_global_model(pos_class_weight=1.0)
 
     # load pre-trained model
     print("[INFO] Load pre_trained data")

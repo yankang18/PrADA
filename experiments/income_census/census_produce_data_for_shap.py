@@ -1,5 +1,5 @@
 from datasets.census_dataloader import get_income_census_dataloaders
-from experiments.income_census.train_census_fg_dann import create_global_model
+from experiments.income_census.train_census_fg_dann import create_fg_census_global_model
 from utils import test_classifier, produce_data_for_lr_shap
 
 if __name__ == "__main__":
@@ -40,7 +40,7 @@ if __name__ == "__main__":
     # dann_task_id_list = ['20210705_src_lr0.0006_bs128_pw1.0_me600_ts1625426396']
     dann_task_id_list = ['20210705_src_lr0.0006_bs128_pw1.0_me600_ts1625462494']
     # Initialize models
-    model = create_global_model(pos_class_weight=1.0, using_interaction=using_interaction)
+    model = create_fg_census_global_model(pos_class_weight=1.0, using_interaction=using_interaction)
     for task_id in dann_task_id_list:
         print(f'------ [INFO] create data for {task_id} ------')
 
