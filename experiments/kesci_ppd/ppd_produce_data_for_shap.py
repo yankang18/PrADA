@@ -1,5 +1,5 @@
 from datasets.ppd_dataloader import get_pdd_dataloaders_ob
-from experiments.kesci_ppd.train_ppd_fg_dann import create_pdd_global_model
+from experiments.kesci_ppd.train_ppd_fg_dann import create_no_fg_pdd_global_model
 from utils import produce_data_for_lr_shap
 from utils import test_classifier
 
@@ -9,7 +9,7 @@ if __name__ == "__main__":
     task_id = "20210506_PDD_pw1.0_bs256_lr0.0012_v0_t1620275086"
 
     # Load initial models
-    model = create_pdd_global_model()
+    model = create_no_fg_pdd_global_model()
 
     # load trained model
     model.load_model(root=dann_root_folder,

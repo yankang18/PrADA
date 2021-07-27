@@ -1,27 +1,3 @@
-# feature_extractor_architecture_list = [
-#     # [31, 40, 31, 8],
-#     [15, 30, 15, 6],
-#     [85, 110, 85, 10],
-#     [30, 50, 30, 8],
-#     [18, 30, 18, 6],
-#     [55, 80, 55, 10]]
-
-# feature_extractor_architecture_list = [
-#     # [31, 40, 31, 8],
-#     [15, 30, 15, 6],
-#     [85, 160, 85, 40, 10],
-#     [30, 60, 30, 8],
-#     [18, 36, 18, 6],
-#     [55, 100, 55, 30, 10]]
-
-# feature_extractor_architecture_list = [
-#     # [31, 40, 31, 8],
-#     [15, 20, 10, 6],
-#     [85, 100, 40, 10],
-#     [30, 40, 20, 8],
-#     [18, 24, 10, 6],
-#     [55, 70, 35, 10]]
-
 feature_extractor_architecture_list = [
     [15, 20, 15, 6],
     [85, 100, 60, 8],
@@ -29,27 +5,59 @@ feature_extractor_architecture_list = [
     [18, 30, 18, 6],
     [55, 70, 30, 8]]
 
-# feature_extractor_architecture_list = [
-#     [15, 20, 15, 6],
-#     [85, 100, 60, 20],
-#     [30, 50, 30, 10],
-#     [18, 30, 18, 6],
-#     [55, 70, 30, 10]]
+no_fg_feature_extractor_architecture = [203, 210, 70, 20]
 
-# feature_extractor_architecture_list = [
-#     # [31, 40, 31, 8],
-#     [15, 20, 15, 6],
-#     [85, 100, 80, 8],
-#     [30, 50, 30, 6],
-#     [18, 30, 18, 6],
-#     [55, 70, 30, 6]]
+pre_train_fg_dann_hyperparameters = {
+    "using_interaction": True,
+    "momentum": 0.99,
+    "weight_decay": 0.00001,
+    "lr": 5e-4,
+    "batch_size": 64,
+    "max_epoch": 600,
+    "epoch_patience": 5,
+    "pos_class_weight": 1.0,
+    "valid_metric": ('ks', 'auc')
+}
 
-# tgt_data_tag = 't03'
-# tgt_data_tag = 't04'
-tgt_data_tag = 't004'
+fine_tune_fg_dann_hyperparameters = {
+    "using_interaction": True,
+    "load_global_classifier": False,
+    "momentum": 0.99,
+    "weight_decay": 0.0,
+    "lr": 6e-4,
+    "batch_size": 64,
+    "pos_class_weight": 1.0,
+    "valid_metric": ('ks', 'auc')
+}
 
-# tgt_data_tag = 't05'
-# src_data_tag = 's06'
-tgt_tag = 'tgt3000'
-# tgt_tag = 'tgt4000v2'
-data_tag = 'lbl004tgt4000v2'
+no_adaptation_hyperparameters = {
+    "momentum": 0.99,
+    "weight_decay": 0.00001,
+    "batch_size": 64,
+    "lr": 5e-4,
+    "pos_class_weight": 1.0,
+    "epoch_patience": 8,
+    "max_epochs": 800,
+    "metrics": ('ks', 'auc')
+}
+
+data_tag = 'lbl004tgt4000v4'
+# data_tag = 'lbl002tgt4000'
+# data_tag = 'lbl001tgt4000'
+ts = '20210522'
+data_dir = f"/Users/yankang/Documents/Data/Data_Open_Analysis_master/Kesci_PPD/PPD_data_output_{ts}/"
+
+data_hyperparameters = {
+    "source_train_file_name": data_dir + f"PPD_2014_src_1to9_da_{data_tag}_train.csv",
+    "source_test_file_name": data_dir + f'PPD_2014_src_1to9_da_{data_tag}_test.csv',
+    "target_train_file_name": data_dir + f'PPD_2014_tgt_10to12_da_{data_tag}_train.csv',
+    "target_test_file_name": data_dir + f'PPD_2014_tgt_10to12_ft_{data_tag}_test.csv',
+    "src_tgt_train_file_name": data_dir + f"PPD_2014_src_tgt_{data_tag}_train.csv",
+
+    "ppd_fg_dann_model_dir": "ppd_fg_dann",
+    "ppd_fg_ft_target_model_dir": "ppd_fg_target",
+    "ppd_no-fg_dann_model_dir": "ppd_no-fg_dann",
+    "ppd_no-fg_ft_target_model_dir": "ppd_no-fg_target",
+    "ppd_no-ad_model_dir": "ppd_no-ad_model"
+
+}
