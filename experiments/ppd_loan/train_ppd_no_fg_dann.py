@@ -2,11 +2,11 @@ from collections import OrderedDict
 
 import torch
 
-from experiments.kesci_ppd.global_config import data_tag, \
+from experiments.ppd_loan.global_config import data_tag, \
     pre_train_fg_dann_hyperparameters, data_hyperparameters, no_fg_feature_extractor_architecture
-from experiments.kesci_ppd.meta_data import column_name_list, group_ind_list, group_info
-from experiments.kesci_ppd.train_ppd_fg_dann import parse_domain_data, create_embedding_dict
-from experiments.kesci_ppd.train_ppd_utils import pretrain_ppd_dann
+from experiments.ppd_loan.meta_data import column_name_list, group_ind_list, group_info
+from experiments.ppd_loan.train_ppd_fg_dann import parse_domain_data, create_embedding_dict
+from experiments.ppd_loan.train_ppd_utils import pretrain_ppd_dann
 from models.classifier import GlobalClassifier, CensusFeatureAggregator
 from models.dann_models import GlobalModel, RegionalModel
 from models.discriminator import LendingRegionDiscriminator

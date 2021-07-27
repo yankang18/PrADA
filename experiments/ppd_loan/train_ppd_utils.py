@@ -1,6 +1,6 @@
 from datasets.ppd_dataloader import get_datasets, get_dataloader
 from datasets.ppd_dataloader import get_pdd_dataloaders_ob
-from experiments.kesci_ppd.train_ppd_no_fg_dann import create_no_fg_pdd_global_model
+from experiments.ppd_loan.train_ppd_no_fg_dann import create_no_fg_pdd_global_model
 from models.experiment_dann_learner import FederatedDAANLearner
 from models.experiment_target_learner import FederatedTargetLearner
 from utils import get_timestamp, get_current_date, create_id_from_hyperparameters

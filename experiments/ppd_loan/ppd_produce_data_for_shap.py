@@ -1,5 +1,5 @@
 from datasets.ppd_dataloader import get_pdd_dataloaders_ob
-from experiments.kesci_ppd.train_ppd_fg_dann import create_no_fg_pdd_global_model
+from experiments.ppd_loan.train_ppd_fg_dann import create_no_fg_pdd_global_model
 from utils import produce_data_for_lr_shap
 from utils import test_classifier
 

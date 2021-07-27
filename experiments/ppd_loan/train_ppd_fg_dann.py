@@ -1,9 +1,9 @@
 from collections import OrderedDict
 
-from experiments.kesci_ppd.global_config import feature_extractor_architecture_list, data_tag, \
+from experiments.ppd_loan.global_config import feature_extractor_architecture_list, data_tag, \
     pre_train_fg_dann_hyperparameters, data_hyperparameters
-from experiments.kesci_ppd.meta_data import column_name_list, group_ind_list, group_info, embedding_shape_map
-from experiments.kesci_ppd.train_ppd_utils import pretrain_ppd_dann
+from experiments.ppd_loan.meta_data import column_name_list, group_ind_list, group_info, embedding_shape_map
+from experiments.ppd_loan.train_ppd_utils import pretrain_ppd_dann
 from models.classifier import CensusFeatureAggregator
 from models.dann_models import create_embeddings
 from models.discriminator import CensusRegionDiscriminator

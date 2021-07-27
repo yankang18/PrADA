@@ -1,6 +1,6 @@
-from experiments.kesci_ppd.global_config import data_hyperparameters, fine_tune_fg_dann_hyperparameters
-from experiments.kesci_ppd.train_ppd_no_fg_dann import create_no_fg_pdd_global_model
-from experiments.kesci_ppd.train_ppd_utils import finetune_ppd_dann
+from experiments.ppd_loan.global_config import data_hyperparameters, fine_tune_fg_dann_hyperparameters
+from experiments.ppd_loan.train_ppd_no_fg_dann import create_no_fg_pdd_global_model
+from experiments.ppd_loan.train_ppd_utils import finetune_ppd_dann
 
 if __name__ == "__main__":
     dann_task_id = ''
