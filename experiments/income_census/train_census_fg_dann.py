@@ -100,8 +100,11 @@ def create_fg_census_global_model(pos_class_weight=1.0, num_wide_feature=5, usin
 
 if __name__ == "__main__":
     census_dann_root_dir = data_hyperparameters['census_fg_dann_model_dir']
-    pretrain_census_dann(data_tag,
-                         census_dann_root_dir,
-                         pre_train_fg_dann_hyperparameters,
-                         data_hyperparameters,
-                         create_census_global_model_func=create_fg_census_global_model)
+    using_interaction = pre_train_fg_dann_hyperparameters['using_interaction']
+    init_model = create_fg_census_global_model(using_interaction=using_interaction)
+    task_id = pretrain_census_dann(data_tag,
+                                   census_dann_root_dir,
+                                   pre_train_fg_dann_hyperparameters,
+                                   data_hyperparameters,
+                                   init_model)
+    print(f"[INFO] task id:{task_id}")

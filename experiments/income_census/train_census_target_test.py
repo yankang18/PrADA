@@ -1,35 +1,39 @@
 from datasets.census_dataloader import get_income_census_dataloaders
-from experiments.income_census.train_census_fg_dann import create_fg_census_global_model
+from experiments.income_census import train_census_fg_target_transfer as fg_finetune
+from experiments.income_census import train_census_no_adaption as no_ad_finetune
+from experiments.income_census import train_census_no_fg_target_transfer as no_fg_finetune
+from experiments.income_census.global_config import data_hyperparameters
+from experiments.income_census.test_config import census_target_test_config
 from utils import test_classifier
 
-if __name__ == "__main__":
-    dann_root_folder = "census_dann"
 
-    # dann_task_id = '20210505_DEGREE_0.0005_64_1620156015'
-    # dann_task_id = '20210506_DEGREE_0.0005_64_1620240228'
-    dann_task_id = '20210506_DEGREE_0.0005_64_1620253871'
+def test_model(task_id, init_model, trained_model_root_folder, target_test_file_name):
+    # load trained model
+    print("[INFO] load trained model")
+    init_model.load_model(root=trained_model_root_folder,
+                          task_id=task_id,
+                          load_global_classifier=True,
+                          timestamp=None)
 
-    # Load models
-    model = create_fg_census_global_model(pos_class_weight=1.0)
+    init_model.print_parameters()
 
-    # load pre-trained model
-    print("[INFO] Load pre_trained data")
-    load_global_classifier = False
-    model.load_model(root=dann_root_folder,
-                     task_id=dann_task_id,
-                     load_global_classifier=True,
-                     timestamp=None)
-
-    model.print_parameters()
-
-    print("[INFO] Load test data")
-    data_dir = "/Users/yankang/Documents/Data/census/output/"
-    target_test_file_name = data_dir + 'grad_census9495_da_test.csv'
-
+    print("[INFO] load test data")
     batch_size = 1024
     target_test_loader, _ = get_income_census_dataloaders(
         ds_file_name=target_test_file_name, batch_size=batch_size, split_ratio=1.0)
 
     print("[INFO] Run test")
-    acc, auc, ks = test_classifier(model, target_test_loader, "test")
+    acc, auc, ks = test_classifier(init_model, target_test_loader, "test")
     print(f"[INFO] test acc:{acc}, auc:{auc}, ks:{ks}")
+
+
+if __name__ == "__main__":
+    task_id = census_target_test_config['task_id']
+    test_tag = census_target_test_config['test_task_tag']
+    test_models_dir = {"fg_target": fg_finetune.get_finetune_model_meta,
+                       "no_fg_target": no_fg_finetune.get_finetune_model_meta,
+                       "no_ad_target": no_ad_finetune.get_model_meta}
+    init_model, model_root_dir = test_models_dir[test_tag]()
+    target_test_file_name = data_hyperparameters['target_ft_test_file_name']
+    print(f"[INFO] target_test_file_name: {target_test_file_name}.")
+    test_model(task_id, init_model, model_root_dir, target_test_file_name)
