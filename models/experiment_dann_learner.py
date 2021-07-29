@@ -42,7 +42,6 @@ class FederatedDAANLearner(object):
                  source_da_train_loader,
                  source_val_loader,
                  target_da_train_loader=None,
-                 target_clz_train_loader=None,
                  target_val_loader=None,
                  max_epochs=500,
                  epoch_patience=2,
@@ -52,7 +51,7 @@ class FederatedDAANLearner(object):
         self.num_regions = self.global_model.get_num_regions()
         self.src_train_loader = source_da_train_loader
         self.tgt_train_loader = target_da_train_loader
-        self.tgt_clz_train_loader = target_clz_train_loader
+        # self.tgt_clz_train_loader = target_clz_train_loader
 
         self.src_val_loader = source_val_loader
         self.tgt_val_loader = target_val_loader
@@ -61,7 +60,6 @@ class FederatedDAANLearner(object):
         if self.src_val_loader: print(f"source_val_loader len: {len(self.src_val_loader)}")
         if self.tgt_train_loader: print(f"target_train_loader len: {len(self.tgt_train_loader)}")
         if self.tgt_val_loader: print(f"target_val_loader len: {len(self.tgt_val_loader)}")
-        if self.tgt_clz_train_loader: print(f"tgt_clz_train_loader len: {len(self.tgt_clz_train_loader)}")
 
         self.max_epochs = max_epochs
         self.epoch_patience = epoch_patience
@@ -95,10 +93,12 @@ class FederatedDAANLearner(object):
                           lr,
                           task_id,
                           train_source=True,
-                          valid_source=True,
-                          metric=('ks', 'auc')):
+                          valid_source=False,
+                          metric=('ks', 'auc'),
+                          momentum=0.99,
+                          weight_decay=0.00001):
 
-        optimizer = optim.SGD(self.global_model.parameters(), lr=lr, momentum=0.99, weight_decay=0.00001)
+        optimizer = optim.SGD(self.global_model.parameters(), lr=lr, momentum=momentum, weight_decay=weight_decay)
 
         train_loader = self.src_train_loader if train_source else self.tgt_train_loader
         num_batches_per_epoch = len(train_loader)
@@ -192,39 +192,22 @@ class FederatedDAANLearner(object):
         weight_decay = optimizer_param_dict[optimizer_domain_tag]["weight_decay"]
         return lr, momentum, weight_decay
 
-    def train_dann(self, epochs, task_id, metric=('ks', 'auc'),
-                   apply_global_domain_adaption=False,
-                   global_domain_adaption_lambda=1.0,
-                   use_target_classifier=False,
-                   num_tgt_clz_train_iter=1,
-                   tgt_clz_interval=5,
+    def train_dann(self,
+                   epochs,
+                   task_id,
+                   metric=('ks', 'auc'),
                    optimizer_param_dict=None,
-                   monitor_source=True):
+                   monitor_source=False):
         self._check_exists()
 
         src_da_train_iter = ForeverDataIterator(self.src_train_loader)
         tgt_da_train_iter = ForeverDataIterator(self.tgt_train_loader)
-        tgt_clz_train_iter = ForeverDataIterator(self.tgt_clz_train_loader) if self.tgt_clz_train_loader else None
-        num_tgt_clz_train_iter = num_tgt_clz_train_iter if num_tgt_clz_train_iter else len(tgt_clz_train_iter)
 
         src_lr, src_momentum, src_weight_decay = self.get_optimizer_params(optimizer_param_dict, "src")
         src_optimizer = optim.SGD(self.global_model.parameters(),
                                   lr=src_lr,
                                   momentum=src_momentum,
                                   weight_decay=src_weight_decay)
-
-        tgt_optimizer = None
-        if use_target_classifier:
-            print(f"[INFO] train tgt classifier {num_tgt_clz_train_iter} iterations every {tgt_clz_interval} batches.")
-            tgt_lr, tgt_momentum, tgt_weight_decay = self.get_optimizer_params(optimizer_param_dict, "tgt")
-            tgt_optimizer = optim.SGD(
-                # self.global_model.source_classifier_parameters(),
-                # self.global_model.parameters(),
-                # self.global_model.target_side_parameters(),
-                self.global_model.target_classifier_parameters(),
-                lr=tgt_lr,
-                momentum=tgt_momentum,
-                weight_decay=tgt_weight_decay)
 
         num_batches_per_epoch = len(src_da_train_iter)
         num_validations, valid_batch_interval = self.compute_number_validations(num_batches_per_epoch)
@@ -253,9 +236,6 @@ class FederatedDAANLearner(object):
 
                 kwargs = dict()
                 kwargs["alpha"] = alpha
-                kwargs["apply_global_domain_adaption"] = apply_global_domain_adaption
-                kwargs["global_domain_adaption_lambda"] = global_domain_adaption_lambda
-                # kwargs["apply_target_classification"] = use_target_classifier
                 loss_dict = self.global_model.compute_total_loss(source_data,
                                                                  target_data,
                                                                  source_label,
@@ -270,14 +250,6 @@ class FederatedDAANLearner(object):
                 src_optimizer.step()
                 src_optimizer.zero_grad()
 
-                if use_target_classifier:
-                    class_loss = self.global_model.compute_classification_loss(target_data,
-                                                                               target_label,
-                                                                               use_source_classifier=True)
-                    class_loss.backward()
-                    tgt_optimizer.step()
-                    tgt_optimizer.zero_grad()
-
                 with torch.no_grad():
                     if (batch_idx + 1) % valid_batch_interval == 0:
                         print("-" * 50)
@@ -290,7 +262,6 @@ class FederatedDAANLearner(object):
                                                                                data_loader=self.tgt_val_loader,
                                                                                tag="test target",
                                                                                use_src_classifier=True)
-                                                                               # use_src_clz=not use_target_classifier)
                         ave_dom_acc, dom_acc_list, entropy_dom_acc = test_discriminator(self.global_model,
                                                                                         self.num_regions,
                                                                                         self.src_val_loader,
@@ -315,9 +286,7 @@ class FederatedDAANLearner(object):
                             metric_dict = {'acc': tgt_cls_acc, 'auc': tgt_cls_auc, 'ks': tgt_cls_ks}
                         score_list = [metric_dict[metric_name] for metric_name in metric]
                         metric_score = sum(score_list) / len(score_list)
-                        # score = 0.8 * metric_score + 0.2 * entropy_dom_acc
-                        # print(f"[DEBUG] metric_score: {metric_score}")
-                        # print(f"[DEBUG] entropy_domain_score: {entropy_dom_acc}")
+
                         score = metric_score
                         print(f"[DEBUG] *total_score: {score}")
                         if score > self.best_score:
