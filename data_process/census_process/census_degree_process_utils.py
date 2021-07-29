@@ -8,16 +8,6 @@ from data_process.census_process.mapping_resource import education_value_map, wo
 from data_process.census_process.utils import bucketized_age
 
 
-def assign_native_country_identifier(country):
-    # asian_country = ["Vietnam", "Philippines", "China", "Taiwan", "South-Korea", "India",
-    #                  "Hong-Kong", "Japan", "Thailand", "Laos", "Cambodia"]
-    asian_country = [4, 5]
-    if country in asian_country:
-        return 1
-    else:
-        return 0
-
-
 def consistentize_census9495_columns(data_frame):
     # data_frame = data_frame.replace(to_replace="Not in universe", value="None")
     data_frame = data_frame.replace(to_replace="?", value="None")
@@ -30,17 +20,12 @@ def consistentize_census9495_columns(data_frame):
     return data_frame
 
 
-# {"workclass": workclass_index_map, "education": education_index_map,
-#                                      "marital_status": marital_status_index_map, "occupation": occupation_index_map,
-#                                      "native_country": country_index_map, "race": race_index_map,
-#                                      "gender": gender_index_map, "income_label": income_label_index}
 def numericalize_census9495_data(data_frame, to_index_map):
     data_frame['education_year'] = data_frame.apply(lambda row: education_value_map[row.education], axis=1)
     data_frame['age_index'] = data_frame.apply(lambda row: bucketized_age(row.age), axis=1)
 
     # convert categorical to index
     data_frame = data_frame.replace(to_index_map)
-
     data_frame['gender_index'] = data_frame['gender']
 
     return data_frame
