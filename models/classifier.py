@@ -1,18 +1,11 @@
 import torch.nn as nn
 import torch.nn.functional as F
 
-from models.model_utils import init_weights
-
 
 class TransformMatrix(nn.Module):
     def __init__(self, input_dim, output_dim):
         super(TransformMatrix, self).__init__()
-        # self.transform = nn.Sequential(
-        #     nn.Linear(in_features=input_dim, out_features=output_dim),
-        # )
-
         self.fc = nn.Linear(in_features=input_dim, out_features=output_dim, bias=False)
-
         # self.fc.apply(init_weights)
 
     def transform(self, x):
@@ -45,7 +38,6 @@ class RegionClassifier(nn.Module):
         super(RegionClassifier, self).__init__()
         self.classifier = nn.Sequential(
             nn.Linear(in_features=input_dim, out_features=3),
-            # nn.ReLU()
         )
 
     def forward(self, x):
@@ -55,17 +47,12 @@ class RegionClassifier(nn.Module):
 activation_fn = nn.LeakyReLU()
 
 
-# activation_fn = nn.Sigmoid()
-# activation_fn = Mish()
-
-
 class CensusFeatureAggregator(nn.Module):
     def __init__(self, input_dim, output_dim=1):
         super(CensusFeatureAggregator, self).__init__()
         self.aggregator = nn.Sequential(
             nn.Linear(in_features=input_dim, out_features=output_dim),
         )
-
         # self.aggregator.apply(init_weights)
 
     def forward(self, x):
@@ -86,7 +73,6 @@ class GlobalClassifier(nn.Module):
         self.classifier = nn.Sequential(
             nn.Linear(in_features=input_dim, out_features=1),
         )
-        # self.classifier.apply(init_weights)
 
     def forward(self, x):
         return self.classifier(x)

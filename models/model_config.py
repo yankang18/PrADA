@@ -9,23 +9,10 @@ from utils import compute_parameter_size
 
 def create_feature_interaction_model(feature_extractor_architecture_list,
                                      intr_feature_extractor_architecture_list,
-                                     create_model_group_fn,
-                                     using_transform_matrix=True):
+                                     create_model_group_fn):
     """
     create interaction model that is responsible for interations among feature groups.
     """
-    # hidden_dim_list = [f[-1] for f in input_dims_list]
-    # if using_transform_matrix:
-    #     print("[INFO] create transform matrix with hidden_dim_list:", hidden_dim_list)
-    #     transform_matrix_dict = initialize_transform_matrix_dict(hidden_dim_list)
-    # else:
-    #     if len(set(hidden_dim_list)) > 1:
-    #         raise RuntimeError(f"[ERROR] all hidden dim should be the same if do not use tranform matrix,"
-    #                            f" but get hidden_dim_list:{hidden_dim_list}")
-    #     transform_matrix_dict = None
-    # feat_intr_computer = AttentiveFeatureInteractionComputer(transform_matrix_dict=transform_matrix_dict)
-    # extractor_list, classifier_list, discriminator_list = create_model_group_list(input_dims_list,
-    #                                                                               create_model_group_fn)
 
     feat_intr_computer = BiFeatureInteractionComputer()
     if intr_feature_extractor_architecture_list is None:
@@ -81,12 +68,11 @@ def create_region_model_list(input_dims_list, create_model_group_fn):
 
 
 def wire_fg_dann_global_model(embedding_dict,
-                              feature_extractor_architecture_list,
-                              intr_feature_extractor_architecture_list,
+                              feat_extr_archit_list,
+                              intr_feat_extr_archit_list,
                               num_wide_feature,
                               using_feature_group,
                               using_interaction,
-                              using_transform_matrix,
                               partition_data_fn,
                               create_model_group_fn,
                               pos_class_weight=1.0):
@@ -96,21 +82,23 @@ def wire_fg_dann_global_model(embedding_dict,
     parameters:
     ----------
     embedding_dict - the embedding dictionary,
-    feature_extractor_architecture_list - the neural network architecture for all feature groups (neural network
+    feat_extr_archit_list - the neural network architecture for all feature groups (neural network
     has only dense layers),
+    intr_feat_extr_archit_list - the neural network architecture for interactive feature groups
+    (neural network has only dense layers),
     num_wide_feature - the number of feature used in party A or party B,
     using_feature_group - whether apply feature group,
     using_interaction -  whether apply interactions among feature groups,
-    using_transform_matrix - whether use transform matrix when feature group interaction applied,
     partition_data_fn - the data partition function,
     create_model_group_fn - the create model group function,
+    pos_class_weight - weights for positive classes
     """
 
     if using_feature_group:
-        print(f"[INFO] feature_extractor_architecture_list:{feature_extractor_architecture_list}, "
-              f"len:{len(feature_extractor_architecture_list)}")
-        print(f"# of parameters:{compute_parameter_size(feature_extractor_architecture_list)}")
-        region_model_list = create_region_model_list(feature_extractor_architecture_list, create_model_group_fn)
+        print(f"[INFO] feature_extractor_architecture_list:{feat_extr_archit_list}, "
+              f"len:{len(feat_extr_archit_list)}")
+        print(f"# of parameters:{compute_parameter_size(feat_extr_archit_list)}")
+        region_model_list = create_region_model_list(feat_extr_archit_list, create_model_group_fn)
     else:
         region_model_list = list()
     print(f"[INFO] region_model_list len:{len(region_model_list)}")
@@ -118,10 +106,9 @@ def wire_fg_dann_global_model(embedding_dict,
     interaction_model = None
     interactive_group_num = 0
     if using_interaction:
-        interaction_model = create_feature_interaction_model(feature_extractor_architecture_list,
-                                                             intr_feature_extractor_architecture_list,
-                                                             create_model_group_fn,
-                                                             using_transform_matrix)
+        interaction_model = create_feature_interaction_model(feat_extr_archit_list,
+                                                             intr_feat_extr_archit_list,
+                                                             create_model_group_fn)
         interactive_group_num = interaction_model.get_num_feature_groups()
 
     global_discriminator_dim = len(region_model_list) + interactive_group_num
@@ -131,10 +118,8 @@ def wire_fg_dann_global_model(embedding_dict,
     print(f"[INFO] global_discriminator_dim length:{global_discriminator_dim}")
 
     source_classifier = GlobalClassifier(input_dim=global_input_dim)
-    target_classifier = GlobalClassifier(input_dim=global_input_dim)
     global_discriminator = GlobalDiscriminator(input_dim=global_discriminator_dim)
     global_model = GlobalModel(source_classifier=source_classifier,
-                               target_classifier=target_classifier,
                                regional_model_list=region_model_list,
                                embedding_dict=embedding_dict,
                                partition_data_fn=partition_data_fn,
