@@ -21,9 +21,9 @@ def compute_parameter_size(feature_extractor_architecture):
     return all_num_param
 
 
-def create_id_from_hyperparameters(hyperparameter_dict):
-    hyperparam_list = [key + str(value) for key, value in hyperparameter_dict.items()]
-    return "_".join(hyperparam_list)
+def create_id_from_hyperparameters(hyper_parameter_dict):
+    hyper_param_list = [key + str(value) for key, value in hyper_parameter_dict.items()]
+    return "_".join(hyper_param_list)
 
 
 def get_latest_timestamp(timestamped_file_name, folder):
@@ -88,7 +88,7 @@ def load_dann_experiment_result(root, task_id, timestamp=None):
     return dann_exp_result_dict
 
 
-def test_classifier(model, data_loader, tag, use_src_classifier=True):
+def test_classifier(model, data_loader, tag):
     print(f"---------- {tag} classification ----------")
     correct = 0
     n_total = 0
@@ -99,9 +99,7 @@ def test_classifier(model, data_loader, tag, use_src_classifier=True):
     for batch_idx, (data, label) in enumerate(data_loader):
         label = label.flatten()
         n_total += len(label)
-        batch_corr, y_pred, pos_y_prob = model.calculate_classifier_correctness(data,
-                                                                                label,
-                                                                                use_source_classifier=use_src_classifier)
+        batch_corr, y_pred, pos_y_prob = model.calculate_classifier_correctness(data, label)
         correct += batch_corr
         y_real_list += label.tolist()
         y_pred_list += y_pred.tolist()
@@ -113,18 +111,12 @@ def test_classifier(model, data_loader, tag, use_src_classifier=True):
 
     get_ks = lambda y_pred, y_true: ks_2samp(y_pred[y_true == 1], y_pred[y_true != 1]).statistic
     ks = get_ks(np.array(y_pos_pred_prob_list), np.array(y_real_list))
-    print("[DEBUG]: {}/{}".format(correct, n_total))
-    # prf_bi = precision_recall_fscore_support(y_real_list, y_pred_list, average='binary')
-    # prf_mi = precision_recall_fscore_support(y_real_list, y_pred_list, average='micro')
-    # prf_ma = precision_recall_fscore_support(y_real_list, y_pred_list, average='macro')
-    # prf_we = precision_recall_fscore_support(y_real_list, y_pred_list, average='weighted')
-    # print(f"precision_recall_fscore:\n (binary: {prf_bi})\n (micro: {prf_mi})"
-    #       f"\n (macro: {prf_ma})\n (weighted: {prf_we}))")
-    print("roc_auc_score_0 : ", auc_0)
-    print("roc_auc_score_1 : ", auc_1)
-    print("ks test : ", ks)
-    print("accuracy : ", accuracy_score(y_real_list, y_pred_list))
-    print("acc : ", acc)
+    print("[INFO]: {}/{}".format(correct, n_total))
+    print("[INFO]: roc_auc_score_0 : ", auc_0)
+    print("[INFO]: roc_auc_score_1 : ", auc_1)
+    print("[INFO]: ks test : ", ks)
+    # print("[INFO]: accuracy : ", accuracy_score(y_real_list, y_pred_list))
+    print("[INFO]: acc : ", acc)
     return acc, auc_1, ks
 
 
