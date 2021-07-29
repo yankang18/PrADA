@@ -1,10 +1,10 @@
 from collections import OrderedDict
 
 from data_process.census_process.mapping_resource import embedding_dim_map
-from experiments.income_census.global_config import pre_train_fg_dann_hyperparameters, data_hyperparameters, data_tag, \
+from experiments.income_census.global_config import pre_train_hyperparameters, data_hyperparameters, data_tag, \
     no_fg_feature_extractor_architecture
-from experiments.income_census.train_census_fg_dann import create_embedding_dict
-from experiments.income_census.train_census_utils import pretrain_census_dann
+from experiments.income_census.train_census_fg_adaptation import create_embedding_dict
+from experiments.income_census.train_census_utils import pretrain_census
 from models.classifier import GlobalClassifier, CensusFeatureAggregator
 from models.dann_models import GlobalModel, RegionalModel
 from models.discriminator import LendingRegionDiscriminator
@@ -82,9 +82,7 @@ def create_no_fg_census_global_model(aggregation_dim=4, num_wide_feature=5, pos_
     global_input_dim = aggregation_dim + num_wide_feature
     print(f"[INFO] global_input_dim:{global_input_dim}")
     source_classifier = GlobalClassifier(input_dim=global_input_dim)
-    target_classifier = GlobalClassifier(input_dim=global_input_dim)
     model = GlobalModel(source_classifier=source_classifier,
-                        target_classifier=target_classifier,
                         regional_model_list=region_model_list,
                         embedding_dict=embedding_dict,
                         partition_data_fn=partition_data,
@@ -96,9 +94,9 @@ def create_no_fg_census_global_model(aggregation_dim=4, num_wide_feature=5, pos_
 if __name__ == "__main__":
     census_dann_root_dir = data_hyperparameters["census_no-fg_dann_model_dir"]
     init_model = create_no_fg_census_global_model()
-    task_id = pretrain_census_dann(data_tag,
-                                   census_dann_root_dir,
-                                   pre_train_fg_dann_hyperparameters,
-                                   data_hyperparameters,
-                                   init_model)
+    task_id = pretrain_census(data_tag,
+                              census_dann_root_dir,
+                              pre_train_hyperparameters,
+                              data_hyperparameters,
+                              init_model)
     print(f"[INFO] task id:{task_id}")

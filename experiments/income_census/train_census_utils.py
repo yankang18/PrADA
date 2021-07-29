@@ -4,11 +4,11 @@ from models.experiment_target_learner import FederatedTargetLearner
 from utils import get_timestamp, get_current_date, create_id_from_hyperparameters, test_classifier
 
 
-def pretrain_census_dann(data_tag,
-                         census_dann_root_dir,
-                         learner_hyperparameters,
-                         data_hyperparameters,
-                         model):
+def pretrain_census(data_tag,
+                    census_dann_root_dir,
+                    learner_hyperparameters,
+                    data_hyperparameters,
+                    model):
     # hyper-parameters
     using_interaction = learner_hyperparameters['using_interaction']
     momentum = learner_hyperparameters['momentum']
@@ -70,12 +70,12 @@ def pretrain_census_dann(data_tag,
     return task_id
 
 
-def finetune_census_dann(dann_task_id,
-                         census_pretain_model_root_dir,
-                         census_finetune_target_root_dir,
-                         learner_hyperparameters,
-                         data_hyperparameters,
-                         model):
+def finetune_census(dann_task_id,
+                    census_pretain_model_root_dir,
+                    census_finetune_target_root_dir,
+                    learner_hyperparameters,
+                    data_hyperparameters,
+                    model):
     # hyper-parameters
     load_global_classifier = learner_hyperparameters['load_global_classifier']
     using_interaction = learner_hyperparameters['using_interaction']
@@ -151,6 +151,7 @@ def finetune_census_dann(dann_task_id,
 
     acc, auc, ks = test_classifier(model, target_test_loader, 'test')
     print(f"acc:{acc}, auc:{auc}, ks:{ks}")
+    return target_task_id
 
 
 def train_no_adaptation(data_tag,
@@ -169,44 +170,44 @@ def train_no_adaptation(data_tag,
     epochs = learner_hyperparameters['epochs']
     valid_metric = learner_hyperparameters['valid_metric']
 
-    source_train_file_name = data_hyperparameters['source_train_file_name']
-    target_train_file_name = data_hyperparameters['target_train_file_name']
-    source_test_file_name = data_hyperparameters['source_test_file_name']
-    target_test_file_name = data_hyperparameters['target_test_file_name']
+    source_train_file_name = data_hyperparameters['source_ad_train_file_name']
+    source_valid_file_name = data_hyperparameters['source_ad_valid_file_name']
+    target_ft_train_file_name = data_hyperparameters['target_ft_train_file_name']
+    target_ft_valid_file_name = data_hyperparameters['target_ft_valid_file_name']
+    target_ft_test_file_name = data_hyperparameters['target_ft_test_file_name']
     src_tgt_train_file_name = data_hyperparameters['src_tgt_train_file_name']
-    data_file_name_dict = {"tgt": target_train_file_name,
+    data_file_name_dict = {"tgt": target_ft_train_file_name,
                            "all": src_tgt_train_file_name}
 
     print(f"[INFO] load source train from: {source_train_file_name}.")
-    print(f"[INFO] load target train from: {target_train_file_name}.")
-    print(f"[INFO] load source test from: {source_test_file_name}.")
-    print(f"[INFO] load target test from: {target_test_file_name}.")
+    print(f"[INFO] load source valid from: {source_valid_file_name}.")
+
+    print(f"[INFO] load target train from: {target_ft_train_file_name}.")
+    print(f"[INFO] load target valid from: {target_ft_valid_file_name}.")
+    print(f"[INFO] load target test from: {target_ft_test_file_name}.")
     print(f"[INFO] load src+tgt test from: {src_tgt_train_file_name}.")
 
     timestamp = get_timestamp()
-    date = get_current_date() + "_" + data_tag + "_census_no_ad_w_fg" if apply_feature_group else "_census_no_ad_wo_fg"
+    date = get_current_date() + "_" + data_tag
+    task_tag = "census_no_ad_w_fg" if apply_feature_group else "census_no_ad_wo_fg"
     tries = 1
     for version in range(tries):
         hyperparameter_dict = {"lr": lr, "bs": batch_size, "ts": timestamp, "ve": version}
-        task_id = date + "_" + train_data_tag + "_" + create_id_from_hyperparameters(hyperparameter_dict)
+        task_id = date + "_" + task_tag + "_" + train_data_tag + "_" + create_id_from_hyperparameters(hyperparameter_dict)
         print("[INFO] perform task:{0}".format(task_id))
 
-        # if apply_feature_group:
-        #     print("[INFO] feature grouping applied")
-        #     model = create_fg_census_global_model_func(num_wide_feature=5)
-        # else:
-        #     print("[INFO] no feature grouping applied")
-        #     model = create_no_fg_census_global_model_func(aggregation_dim=4, num_wide_feature=5)
         print("[INFO] model created.")
         src_train_loader, _ = get_income_census_dataloaders(
             ds_file_name=data_file_name_dict[train_data_tag], batch_size=batch_size, split_ratio=1.0)
         tgt_train_loader, _ = get_income_census_dataloaders(
-            ds_file_name=target_train_file_name, batch_size=batch_size, split_ratio=1.0)
+            ds_file_name=target_ft_train_file_name, batch_size=batch_size, split_ratio=1.0)
 
         src_valid_loader, _ = get_income_census_dataloaders(
-            ds_file_name=source_test_file_name, batch_size=batch_size * 4, split_ratio=1.0)
+            ds_file_name=source_valid_file_name, batch_size=batch_size * 4, split_ratio=1.0)
         tgt_valid_loader, _ = get_income_census_dataloaders(
-            ds_file_name=target_test_file_name, batch_size=batch_size * 4, split_ratio=1.0)
+            ds_file_name=target_ft_valid_file_name, batch_size=batch_size * 4, split_ratio=1.0)
+        tgt_test_loader, _ = get_income_census_dataloaders(
+            ds_file_name=target_ft_test_file_name, batch_size=batch_size * 4, split_ratio=1.0)
 
         plat = FederatedDAANLearner(model=model,
                                     source_da_train_loader=src_train_loader,
@@ -234,5 +235,5 @@ def train_no_adaptation(data_tag,
         print("[DEBUG] Global classifier Model Parameter After train:")
         model.print_parameters()
 
-        acc, auc, ks = test_classifier(model, tgt_valid_loader, 'test')
+        acc, auc, ks = test_classifier(model, tgt_test_loader, 'test')
         print(f"acc:{acc}, auc:{auc}, ks:{ks}")

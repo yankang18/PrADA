@@ -2,8 +2,8 @@ from collections import OrderedDict
 
 from data_process.census_process.mapping_resource import embedding_dim_map
 from experiments.income_census.global_config import fg_feature_extractor_architecture_list, data_tag, \
-    pre_train_fg_dann_hyperparameters, data_hyperparameters, intr_fg_feature_extractor_for_architecture_list
-from experiments.income_census.train_census_utils import pretrain_census_dann
+    pre_train_hyperparameters, data_hyperparameters, intr_fg_feature_extractor_for_architecture_list
+from experiments.income_census.train_census_utils import pretrain_census
 from models.classifier import CensusFeatureAggregator
 from models.dann_models import create_embedding
 from models.discriminator import CensusRegionDiscriminator
@@ -81,16 +81,12 @@ def create_fg_census_global_model(pos_class_weight=1.0, num_wide_feature=5, usin
     embedding_dict = create_embedding_dict(embedding_dim_map)
 
     using_feature_group = True
-    using_interaction = using_interaction
-    using_transform_matrix = False
-
     global_model = wire_fg_dann_global_model(embedding_dict=embedding_dict,
                                              feat_extr_archit_list=fg_feature_extractor_architecture_list,
                                              intr_feat_extr_archit_list=intr_fg_feature_extractor_for_architecture_list,
                                              num_wide_feature=num_wide_feature,
                                              using_feature_group=using_feature_group,
                                              using_interaction=using_interaction,
-                                             using_transform_matrix=using_transform_matrix,
                                              partition_data_fn=partition_data,
                                              create_model_group_fn=create_model_group,
                                              pos_class_weight=pos_class_weight)
@@ -100,11 +96,11 @@ def create_fg_census_global_model(pos_class_weight=1.0, num_wide_feature=5, usin
 
 if __name__ == "__main__":
     census_dann_root_dir = data_hyperparameters['census_fg_dann_model_dir']
-    using_interaction = pre_train_fg_dann_hyperparameters['using_interaction']
+    using_interaction = pre_train_hyperparameters['using_interaction']
     init_model = create_fg_census_global_model(using_interaction=using_interaction)
-    task_id = pretrain_census_dann(data_tag,
-                                   census_dann_root_dir,
-                                   pre_train_fg_dann_hyperparameters,
-                                   data_hyperparameters,
-                                   init_model)
-    print(f"[INFO] task id:{task_id}")
+    task_id = pretrain_census(data_tag,
+                              census_dann_root_dir,
+                              pre_train_hyperparameters,
+                              data_hyperparameters,
+                              init_model)
+    print(f"[INFO] adaptation task id:{task_id}")

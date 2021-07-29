@@ -1,3 +1,5 @@
+from data_process.census_process.census_data_creation_config import census_data_creation
+
 fg_feature_extractor_architecture_list = [[28, 56, 28, 14],
                                           [25, 50, 25, 12],
                                           [56, 86, 56, 18],
@@ -10,20 +12,20 @@ intr_fg_feature_extractor_for_architecture_list = [[53, 78, 53, 15],
                                                    [52, 78, 52, 15],
                                                    [83, 120, 83, 20]]
 
-no_fg_feature_extractor_architecture = [136, 150, 60, 30]
+no_fg_feature_extractor_architecture = [136, 150, 60, 20]
 
-pre_train_fg_dann_hyperparameters = {
+pre_train_hyperparameters = {
     "using_interaction": False,
     "momentum": 0.99,
     "weight_decay": 0.00001,
-    "lr": 6e-4,
+    "lr": 5e-4,
     "batch_size": 128,
     "max_epochs": 600,
     "epoch_patience": 3,
     "valid_metric": ('ks', 'auc')
 }
 
-fine_tune_fg_dann_hyperparameters = {
+fine_tune_hyperparameters = {
     "using_interaction": False,
     "load_global_classifier": False,
     "momentum": 0.99,
@@ -41,22 +43,24 @@ no_adaptation_hyperparameters = {
     "lr": 5e-4,
     "batch_size": 128,
     "epochs": 800,
-    "epoch_patience": 8,
+    "epoch_patience": 3,
     "valid_metric": ('ks', 'auc')
 }
 
-data_dir = "/Users/yankang/Documents/Data/census/output_v2/"
+data_dir = census_data_creation['processed_data_dir']
+# data_tag = 'YOUR DATA TAG'
+
 # data_tag = "all4000pos001"
 # data_tag = 'all4000pos002'
 # data_tag = 'all4000pos004v4'
 # data_tag = 'all4000pos004v5'
-# data_tag = 'all4000pos004v6'
-data_tag = 'all4000pos004v7'
+data_tag = 'all4000pos004v8'
+# data_tag = 'all4000pos004v7'
 
 data_hyperparameters = {
     "source_ad_train_file_name": data_dir + f'undergrad_census9495_ad_{data_tag}_train.csv',
     "source_ad_valid_file_name": data_dir + f'undergrad_census9495_ad_{data_tag}_valid.csv',
-    "src_tgt_train_file_name": data_dir + f'degree_src_tgt_census9495_ad_{data_tag}_train.csv',
+    "src_tgt_train_file_name": data_dir + f'degree_src_tgt_census9495_{data_tag}_train.csv',
 
     "target_ad_train_file_name": data_dir + f'grad_census9495_ad_{data_tag}_train.csv',
     "target_ft_train_file_name": data_dir + f'grad_census9495_ft_{data_tag}_train.csv',

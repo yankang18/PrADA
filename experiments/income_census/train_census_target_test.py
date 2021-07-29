@@ -1,7 +1,7 @@
 from datasets.census_dataloader import get_income_census_dataloaders
-from experiments.income_census import train_census_fg_target_transfer as fg_finetune
-from experiments.income_census import train_census_no_adaption as no_ad_finetune
-from experiments.income_census import train_census_no_fg_target_transfer as no_fg_finetune
+from experiments.income_census import train_census_fg_target_finetune as fg_finetune
+from experiments.income_census import train_census_no_adaptation as no_ad_finetune
+from experiments.income_census import train_census_no_fg_target_finetune as no_fg_finetune
 from experiments.income_census.global_config import data_hyperparameters
 from experiments.income_census.test_config import census_target_test_config
 from utils import test_classifier
@@ -30,6 +30,7 @@ def test_model(task_id, init_model, trained_model_root_folder, target_test_file_
 if __name__ == "__main__":
     task_id = census_target_test_config['task_id']
     test_tag = census_target_test_config['test_task_tag']
+    print(f"[INFO] perform test task : [{test_tag}] with id: {task_id}")
     test_models_dir = {"fg_target": fg_finetune.get_finetune_model_meta,
                        "no_fg_target": no_fg_finetune.get_finetune_model_meta,
                        "no_ad_target": no_ad_finetune.get_model_meta}
