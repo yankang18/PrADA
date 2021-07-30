@@ -1,7 +1,6 @@
 import torch
 import torch.optim as optim
 
-from models.experiment_dann_learner import adjust_learning_rate
 from utils import get_timestamp, test_classifier, save_dann_experiment_result
 
 
@@ -155,8 +154,6 @@ class FederatedTargetLearner(object):
 
             if self.stop_training:
                 break
-
-        print(f"loss_list:{loss_list}")
 
     # def train_target_as_whole(self, global_epochs, lr, task_id, dann_exp_result=None):
     #     self.task_id = task_id

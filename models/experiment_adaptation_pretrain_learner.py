@@ -5,7 +5,6 @@ from torch.utils.data.dataloader import DataLoader
 
 from utils import get_timestamp, save_dann_experiment_result
 from utils import test_classifier, test_discriminator
-# from models.wrapper_obsolete import Wrapper
 
 
 class ForeverDataIterator:
@@ -256,12 +255,10 @@ class FederatedDAANLearner(object):
                         self._change_to_eval_mode()
                         src_cls_acc, src_cls_auc, src_cls_ks = test_classifier(model=self.global_model,
                                                                                data_loader=self.src_val_loader,
-                                                                               tag="test source",
-                                                                               use_src_classifier=True)
+                                                                               tag="test source")
                         tgt_cls_acc, tgt_cls_auc, tgt_cls_ks = test_classifier(model=self.global_model,
                                                                                data_loader=self.tgt_val_loader,
-                                                                               tag="test target",
-                                                                               use_src_classifier=True)
+                                                                               tag="test target")
                         ave_dom_acc, dom_acc_list, entropy_dom_acc = test_discriminator(self.global_model,
                                                                                         self.num_regions,
                                                                                         self.src_val_loader,
@@ -335,5 +332,3 @@ class FederatedDAANLearner(object):
 
             if self.stop_training:
                 break
-
-        print("auc list:{}".format(target_auc_list))
