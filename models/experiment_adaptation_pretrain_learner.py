@@ -68,6 +68,7 @@ class FederatedDAANLearner(object):
         self.recoded_timestamp = None
         self.num_validations = number_validations
         self.valid_batch_interval = validation_batch_interval
+        self.stop_training = False
 
     def set_model_save_info(self, root):
         self.root = root
@@ -77,11 +78,9 @@ class FederatedDAANLearner(object):
             raise RuntimeError('Discriminator not set.')
 
     def _change_to_train_mode(self):
-        # for wrapper in self.wrapper_list:
         self.global_model.change_to_train_mode()
 
     def _change_to_eval_mode(self):
-        # for wrapper in self.wrapper_list:
         self.global_model.change_to_eval_mode()
 
     def save_model(self, task_id, timestamp):
