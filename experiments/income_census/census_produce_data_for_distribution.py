@@ -1,6 +1,6 @@
 from datasets.census_dataloader import get_census_adult_dataloaders
-from experiments.income_census import train_census_fg_dann as fg_dann
-from experiments.income_census import train_census_no_fg_dann as no_fg_dann
+from experiments.income_census import train_census_fg_adapt_pretrain as fg_dann
+from experiments.income_census import train_census_no_fg_adapt_pretrain as no_fg_dann
 from utils import produce_data_for_distribution
 
 if __name__ == "__main__":
@@ -78,8 +78,8 @@ if __name__ == "__main__":
     # data_tag = "all4000pos001"
     # data_tag = "all4000pos001v2"
     data_tag = "all4000pos002"
-    source_train_file_name = data_dir + f'undergrad_census9495_da_{data_tag}_train.csv'
-    target_train_file_name = data_dir + f'grad_census9495_da_{data_tag}_train.csv'
+    source_train_file_name = data_dir + f'undergrad_census9495_ad_{data_tag}_train.csv'
+    target_train_file_name = data_dir + f'grad_census9495_ad_{data_tag}_train.csv'
 
     # load pre-trained model
     print("[INFO] load pre-trained model.")

@@ -21,7 +21,7 @@ pre_train_hyperparameters = {
     "lr": 5e-4,
     "batch_size": 128,
     "max_epochs": 600,
-    "epoch_patience": 3,
+    "epoch_patience": 2,
     "valid_metric": ('ks', 'auc')
 }
 
@@ -42,8 +42,8 @@ no_adaptation_hyperparameters = {
     "weight_decay": 0.00001,
     "lr": 5e-4,
     "batch_size": 128,
-    "epochs": 800,
-    "epoch_patience": 3,
+    "max_epochs": 600,
+    "epoch_patience": 2,
     "valid_metric": ('ks', 'auc')
 }
 
@@ -52,7 +52,7 @@ data_dir = census_data_creation['processed_data_dir']
 
 # data_tag = "all4000pos001"
 # data_tag = 'all4000pos002'
-# data_tag = 'all4000pos004v4'
+# data_tag = 'all4000pos004'
 # data_tag = 'all4000pos004v5'
 data_tag = 'all4000pos004v8'
 # data_tag = 'all4000pos004v7'
@@ -67,9 +67,9 @@ data_hyperparameters = {
     "target_ft_valid_file_name": data_dir + f'grad_census9495_ft_{data_tag}_valid.csv',
     "target_ft_test_file_name": data_dir + f'grad_census9495_ft_{data_tag}_test.csv',
 
-    "census_fg_dann_model_dir": "census_fg_dann_model",
-    "census_fg_ft_target_model_dir": "census_fg_target_model",
-    "census_no-fg_dann_model_dir": "census_no-fg_dann_model",
-    "census_no-fg_ft_target_model_dir": "census_no-fg_target_model",
+    "census_fg_pretrained_model_dir": "census_fg_pretrained_model",
+    "census_fg_ft_target_model_dir": "census_fg_ft_target_model",
+    "census_no-fg_pretrained_model_dir": "census_no-fg_pretrained_model",
+    "census_no-fg_ft_target_model_dir": "census_no-fg_ft_target_model",
     "census_no-ad_model_dir": "census_no-ad_model"
 }

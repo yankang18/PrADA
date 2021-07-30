@@ -1,16 +1,11 @@
 from datasets.census_dataloader import get_income_census_dataloaders
-from experiments.income_census.train_census_fg_dann import create_fg_census_global_model
+from experiments.income_census.train_census_fg_adapt_pretrain import create_fg_census_global_model
 from utils import test_classifier, produce_data_for_lr_shap
 
 if __name__ == "__main__":
     dann_root_folder = "census_dann"
     batch_size = 1024
     data_dir = "/Users/yankang/Documents/Data/census/output/"
-    # data_file_name = data_dir + 'grad_census9495_da_test.csv'
-    # data_file_name = data_dir + 'grad_census9495_da_train.csv'
-    # target_train_file_name = data_dir + 'undergrad_census9495_da_train.csv'
-    # target_adult_train_file_name = 'grad_census9495_da_300_train.csv'
-    # target_adult_test_file_name = 'grad_census9495_da_300_test.csv'
 
     using_interaction = True
     # data_tag = "all4000pos001"
@@ -21,7 +16,6 @@ if __name__ == "__main__":
     source_adult_test_file_name = f'undergrad_census9495_da_{data_tag}_test.csv'
     target_adult_test_file_name = f'grad_census9495_ft_{data_tag}_test.csv'
 
-    # continuous_cols = ["age", "gender", "capital_gain", "capital_loss", "stock_dividends"]
     continuous_cols = ["age", "gender", "education_year", "capital_gain", "capital_loss"]
     feature_group_cols = ['employment', 'demographics', 'migration', 'household']
     intr_feat_group_cols = ['emp-demo', 'emp-mig', 'emp-house', 'demo-mig', 'demo-house', 'mig-house']

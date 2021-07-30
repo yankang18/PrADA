@@ -4,28 +4,7 @@ from experiments.income_census import train_census_no_adaptation as no_ad_finetu
 from experiments.income_census import train_census_no_fg_target_finetune as no_fg_finetune
 from experiments.income_census.global_config import data_hyperparameters
 from experiments.income_census.test_config import census_target_test_config
-from utils import test_classifier
-
-
-def test_model(task_id, init_model, trained_model_root_folder, target_test_file_name):
-    # load trained model
-    print("[INFO] load trained model")
-    init_model.load_model(root=trained_model_root_folder,
-                          task_id=task_id,
-                          load_global_classifier=True,
-                          timestamp=None)
-
-    init_model.print_parameters()
-
-    print("[INFO] load test data")
-    batch_size = 1024
-    target_test_loader, _ = get_income_census_dataloaders(
-        ds_file_name=target_test_file_name, batch_size=batch_size, split_ratio=1.0)
-
-    print("[INFO] Run test")
-    acc, auc, ks = test_classifier(init_model, target_test_loader, "test")
-    print(f"[INFO] test acc:{acc}, auc:{auc}, ks:{ks}")
-
+from experiments.test_utils import test_model
 
 if __name__ == "__main__":
     task_id = census_target_test_config['task_id']
@@ -37,4 +16,10 @@ if __name__ == "__main__":
     init_model, model_root_dir = test_models_dir[test_tag]()
     target_test_file_name = data_hyperparameters['target_ft_test_file_name']
     print(f"[INFO] target_test_file_name: {target_test_file_name}.")
-    test_model(task_id, init_model, model_root_dir, target_test_file_name)
+
+    print("[INFO] load test data")
+    target_test_loader, _ = get_income_census_dataloaders(ds_file_name=target_test_file_name,
+                                                          batch_size=1024,
+                                                          split_ratio=1.0)
+
+    test_model(task_id, init_model, model_root_dir, target_test_loader)

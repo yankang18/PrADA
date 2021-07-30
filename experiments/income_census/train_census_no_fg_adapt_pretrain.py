@@ -3,7 +3,7 @@ from collections import OrderedDict
 from data_process.census_process.mapping_resource import embedding_dim_map
 from experiments.income_census.global_config import pre_train_hyperparameters, data_hyperparameters, data_tag, \
     no_fg_feature_extractor_architecture
-from experiments.income_census.train_census_fg_adaptation import create_embedding_dict
+from experiments.income_census.train_census_fg_adapt_pretrain import create_embedding_dict
 from experiments.income_census.train_census_utils import pretrain_census
 from models.classifier import GlobalClassifier, CensusFeatureAggregator
 from models.dann_models import GlobalModel, RegionalModel
@@ -92,11 +92,12 @@ def create_no_fg_census_global_model(aggregation_dim=4, num_wide_feature=5, pos_
 
 
 if __name__ == "__main__":
-    census_dann_root_dir = data_hyperparameters["census_no-fg_dann_model_dir"]
+    census_pretrained_model_dir = data_hyperparameters["census_no-fg_pretrained_model_dir"]
     init_model = create_no_fg_census_global_model()
     task_id = pretrain_census(data_tag,
-                              census_dann_root_dir,
+                              census_pretrained_model_dir,
                               pre_train_hyperparameters,
                               data_hyperparameters,
-                              init_model)
-    print(f"[INFO] task id:{task_id}")
+                              init_model,
+                              apply_feature_group=False)
+    print(f"[INFO] pretrain task id:{task_id}")
