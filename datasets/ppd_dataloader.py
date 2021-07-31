@@ -69,6 +69,6 @@ def get_dataloaders(train_dataset, valid_dataset, batch_size=32, num_workers=6):
     return mnist_train_loader, mnist_valid_loader
 
 
-def get_pdd_dataloaders_ob(ds_file_name, split_ratio=0.9, batch_size=64, num_workers=6):
+def get_pdd_dataloaders(ds_file_name, split_ratio=0.9, batch_size=64, num_workers=6):
     train_dataset, valid_dataset = get_datasets(ds_file_name=ds_file_name, shuffle=True, split_ratio=split_ratio)
     return get_dataloaders(train_dataset, valid_dataset, batch_size=batch_size, num_workers=num_workers)
