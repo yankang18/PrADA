@@ -16,9 +16,8 @@ def partition_data(data):
                  data[:, 1].reshape(-1, 1),
                  data[:, 2].reshape(-1, 1),
                  data[:, 3].reshape(-1, 1),
-                 data[:, 4].reshape(-1, 1)
-                 # data[:, 5].reshape(-1, 1)
-                 ]
+                 data[:, 4].reshape(-1, 1)]
+
     emp_feat = {"embeddings": OrderedDict({"class_worker": data[:, 5],
                                            "major_ind_code": data[:, 6],
                                            "major_occ_code": data[:, 7],
@@ -50,37 +49,6 @@ def partition_data(data):
                                                  "det_hh_fam_stat": data[:, 27],
                                                  "det_hh_summ": data[:, 28],
                                                  "fam_under_18": data[:, 29]})}
-    # emp_feat = {"embeddings": OrderedDict({"class_worker": data[:, 6],
-    #                                        "major_ind_code": data[:, 7],
-    #                                        "major_occ_code": data[:, 8],
-    #                                        "unemp_reason": data[:, 9],
-    #                                        "full_or_part_emp": data[:, 10],
-    #                                        "own_or_self": data[:, 11]})}
-    # demo_feat = {"embeddings": OrderedDict({"education": data[:, 12],
-    #                                         "race": data[:, 13],
-    #                                         "age_index": data[:, 14],
-    #                                         "gender_index": data[:, 15],
-    #                                         "marital_stat": data[:, 16],
-    #                                         "union_member": data[:, 17],
-    #                                         "vet_benefits": data[:, 18],
-    #                                         "vet_question": data[:, 19]})}
-    # residence_feat = {"embeddings": OrderedDict({"region_prev_res": data[:, 20],
-    #                                              "state_prev_res": data[:, 21],
-    #                                              "mig_chg_msa": data[:, 22],
-    #                                              "mig_chg_reg": data[:, 23],
-    #                                              "mig_move_reg": data[:, 24],
-    #                                              "mig_same": data[:, 25],
-    #                                              "mig_prev_sunbelt": data[:, 26],
-    #                                              "hisp_origin": data[:, 31],
-    #                                              "country_father": data[:, 32],
-    #                                              "country_mother": data[:, 33],
-    #                                              "country_self": data[:, 34],
-    #                                              "citizenship": data[:, 35]
-    #                                              })}
-    # household_feat = {"embeddings": OrderedDict({"tax_filer_stat": data[:, 27],
-    #                                              "det_hh_fam_stat": data[:, 28],
-    #                                              "det_hh_summ": data[:, 29],
-    #                                              "fam_under_18": data[:, 30]})}
 
     deep_partition = [emp_feat, demo_feat, residence_feat, household_feat]
     return wide_feat, deep_partition
