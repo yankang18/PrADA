@@ -1,9 +1,9 @@
 from collections import OrderedDict
 
-from experiments.ppd_loan.global_config import feature_extractor_architecture_list, data_tag, \
-    pre_train_fg_dann_hyperparameters, data_hyperparameters
+from experiments.ppd_loan.train_config import feature_extractor_architecture_list, data_tag, \
+    pre_train_hyperparameters, data_hyperparameters
 from experiments.ppd_loan.meta_data import column_name_list, group_ind_list, group_info, embedding_shape_map
-from experiments.ppd_loan.train_ppd_utils import pretrain_ppd_dann
+from experiments.ppd_loan.train_ppd_utils import pretrain_ppd
 from models.classifier import CensusFeatureAggregator
 from models.dann_models import create_embeddings
 from models.discriminator import CensusRegionDiscriminator
@@ -82,22 +82,17 @@ def create_embedding_dict():
     return create_embeddings(embedding_meta_dict)
 
 
-def create_no_fg_pdd_global_model(pos_class_weight=3.0, num_wide_feature=6, using_interaction=False):
+def create_fg_pdd_global_model(pos_class_weight=1.0, num_wide_feature=6, using_interaction=False):
     embedding_dict = create_embedding_dict()
-    print("[INFO] embedding_dict", embedding_dict)
 
     num_wide_feature = num_wide_feature
-    using_interaction = using_interaction
     using_feature_group = True
-    using_transform_matrix = False
-
     global_model = wire_fg_dann_global_model(embedding_dict=embedding_dict,
                                              feat_extr_archit_list=feature_extractor_architecture_list,
                                              intr_feat_extr_archit_list=None,
                                              num_wide_feature=num_wide_feature,
                                              using_feature_group=using_feature_group,
                                              using_interaction=using_interaction,
-                                             using_transform_matrix=using_transform_matrix,
                                              partition_data_fn=partition_data,
                                              create_model_group_fn=create_model_group,
                                              pos_class_weight=pos_class_weight)
@@ -106,9 +101,16 @@ def create_no_fg_pdd_global_model(pos_class_weight=3.0, num_wide_feature=6, usin
 
 
 if __name__ == "__main__":
-    ppd_dann_root_dir = data_hyperparameters['ppd_fg_dann_model_dir']
-    pretrain_ppd_dann(data_tag,
-                      ppd_dann_root_dir,
-                      pre_train_fg_dann_hyperparameters,
-                      data_hyperparameters,
-                      create_ppd_global_model_func=create_no_fg_pdd_global_model)
+    ppd_dann_root_dir = data_hyperparameters['ppd_fg_pretrained_model_dir']
+    using_interaction = pre_train_hyperparameters['using_interaction']
+    pos_class_weight = pre_train_hyperparameters['pos_class_weight']
+    init_model = create_fg_pdd_global_model(using_interaction=using_interaction,
+                                            pos_class_weight=pos_class_weight)
+
+    task_id = pretrain_ppd(data_tag,
+                           ppd_dann_root_dir,
+                           pre_train_hyperparameters,
+                           data_hyperparameters,
+                           model=init_model,
+                           apply_feature_group=True)
+    print(f"[INFO] adaptation task id:{task_id}")

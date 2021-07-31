@@ -2,11 +2,11 @@ from collections import OrderedDict
 
 import torch
 
-from experiments.ppd_loan.global_config import data_tag, \
-    pre_train_fg_dann_hyperparameters, data_hyperparameters, no_fg_feature_extractor_architecture
+from experiments.ppd_loan.train_config import data_tag, \
+    pre_train_hyperparameters, data_hyperparameters, no_fg_feature_extractor_architecture
 from experiments.ppd_loan.meta_data import column_name_list, group_ind_list, group_info
-from experiments.ppd_loan.train_ppd_fg_dann import parse_domain_data, create_embedding_dict
-from experiments.ppd_loan.train_ppd_utils import pretrain_ppd_dann
+from experiments.ppd_loan.train_ppd_fg_adapt_pretrain import parse_domain_data, create_embedding_dict
+from experiments.ppd_loan.train_ppd_utils import pretrain_ppd
 from models.classifier import GlobalClassifier, CensusFeatureAggregator
 from models.dann_models import GlobalModel, RegionalModel
 from models.discriminator import LendingRegionDiscriminator
@@ -66,7 +66,7 @@ def create_region_model_list(feature_extractor_arch_list, aggregation_dim):
     return model_list
 
 
-def create_no_fg_pdd_global_model(aggregation_dim, num_wide_feature, pos_class_weight=1.0):
+def create_no_fg_pdd_global_model(aggregation_dim=5, num_wide_feature=6, pos_class_weight=1.0):
     embedding_dict = create_embedding_dict()
 
     feature_extractor_architecture = no_fg_feature_extractor_architecture
@@ -76,9 +76,7 @@ def create_no_fg_pdd_global_model(aggregation_dim, num_wide_feature, pos_class_w
     global_input_dim = aggregation_dim + num_wide_feature
     print(f"[INFO] global_input_dim: {global_input_dim}")
     source_classifier = GlobalClassifier(input_dim=global_input_dim)
-    target_classifier = GlobalClassifier(input_dim=global_input_dim)
     wrapper = GlobalModel(source_classifier=source_classifier,
-                          target_classifier=target_classifier,
                           regional_model_list=region_wrapper_list,
                           embedding_dict=embedding_dict,
                           partition_data_fn=partition_data,
@@ -88,9 +86,13 @@ def create_no_fg_pdd_global_model(aggregation_dim, num_wide_feature, pos_class_w
 
 
 if __name__ == "__main__":
-    ppd_dann_root_dir = data_hyperparameters['ppd_no-fg_dann_model_dir']
-    pretrain_ppd_dann(data_tag,
-                      ppd_dann_root_dir,
-                      pre_train_fg_dann_hyperparameters,
-                      data_hyperparameters,
-                      create_ppd_global_model_func=create_no_fg_pdd_global_model)
+    pretrained_model_dir = data_hyperparameters["ppd_no-fg_pretrained_model_dir"]
+    pos_class_weight = pre_train_hyperparameters['pos_class_weight']
+    init_model = create_no_fg_pdd_global_model(pos_class_weight=pos_class_weight)
+    task_id = pretrain_ppd(data_tag,
+                           pretrained_model_dir,
+                           pre_train_hyperparameters,
+                           data_hyperparameters,
+                           model=init_model,
+                           apply_feature_group=False)
+
