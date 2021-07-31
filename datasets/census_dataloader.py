@@ -2,29 +2,8 @@ import numpy as np
 import pandas as pd
 from torch.utils.data import DataLoader
 
+from data_process.census_process.mapping_resource import continuous_cols, categorical_cols, target_col_name
 from datasets.census_dataset import SimpleDataset
-
-# RERANGED_ADULT_COLUMNS_NEW = [
-#     "age", "age_bucket", "workclass", "education", "education_num", "education_year",
-#     "marital_status", "occupation", "relationship", "race", "gender",
-#     "capital_gain", "capital_loss", "hours_per_week", "native_country", "fnlwgt", "income_label"
-# ]
-
-COLUMNS_TO_LOAD = ['age',  # 0
-                   'education_year',  # 1
-                   'capital_gain',  # 2
-                   'capital_loss',  # 3
-                   'age_bucket',  # 4
-                   'marital_status',  # 5
-                   'gender',  # 6
-                   'native_country',  # 7
-                   'race',  # 8
-                   'workclass',  # 9
-                   'occupation',  # 10
-                   'education',  # 11
-                   # "hours_per_week",      # 12
-                   "relationship",  # 13
-                   "income_label"]
 
 
 def shuffle_data(data):
@@ -33,14 +12,11 @@ def shuffle_data(data):
     return data[perm_idxs]
 
 
-from data_process.census_process.mapping_resource import continuous_cols, categorical_cols, target_col_name
-
-
 def get_datasets(ds_file_name, shuffle=False, split_ratio=0.9):
     dataframe = pd.read_csv(ds_file_name, skipinitialspace=True)
 
     COLUMNS_TO_LOAD = continuous_cols + categorical_cols + [target_col_name]
-    print("COLUMNS_TO_LOAD:", COLUMNS_TO_LOAD)
+    print("[INFO] COLUMNS_TO_LOAD:", COLUMNS_TO_LOAD)
     samples = dataframe[COLUMNS_TO_LOAD].values
     # print(samples)
     if shuffle:
