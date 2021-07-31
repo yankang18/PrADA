@@ -244,7 +244,8 @@ def create_degree_src_tgt_data(p_census,
     return grad_train_scaler, udgrad_train_scaler, grad_census_for_test
 
 
-def create_src_tgt_data(from_dir, to_dir, data_tag):
+def combine_src_tgt_data(from_dir, to_dir, data_tag):
+    print(f"========================= combine census source and target data ============================ ")
 
     source_train_file_name = from_dir + f'undergrad_census9495_ad_{data_tag}_train.csv'
     target_train_file_name = from_dir + f'grad_census9495_ft_{data_tag}_train.csv'
@@ -258,7 +259,6 @@ def create_src_tgt_data(from_dir, to_dir, data_tag):
     print("[INFO] df_src_tgt_data shape:", df_data.shape)
 
     file_full_name = "{}/degree_src_tgt_census9495_{}_train.csv".format(to_dir, data_tag)
-
     data_process_utils.save_df_data(df_data, file_full_name)
 
 
@@ -271,8 +271,8 @@ if __name__ == "__main__":
     num_all = census_data_creation['number_target_samples']
 
     print("[INFO] ------ process data ------")
-    train_data_path = data_dir + "census-income.data"
-    test_data_path = data_dir + "census-income.test"
+    train_data_path = data_dir + census_data_creation['train_data_file_name']
+    test_data_path = data_dir + census_data_creation['test_data_file_name']
     train_df = process(train_data_path, to_dir=output_data_dir, train=True)
     test_df = process(test_data_path, to_dir=output_data_dir, train=False)
 
@@ -295,4 +295,4 @@ if __name__ == "__main__":
                                num_all=num_all)
 
     # NOTE: input dir and output dir are the same for src_tgt_data
-    create_src_tgt_data(from_dir=output_data_dir, to_dir=output_data_dir, data_tag=data_tag)
+    combine_src_tgt_data(from_dir=output_data_dir, to_dir=output_data_dir, data_tag=data_tag)
