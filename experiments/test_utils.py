@@ -11,5 +11,5 @@ def test_model(task_id, init_model, trained_model_root_folder, target_test_loade
     init_model.print_parameters()
 
     print("[INFO] Run test")
-    acc, auc, ks = test_classifier(init_model, target_test_loader, "test")
-    print(f"[INFO] test acc:{acc}, auc:{auc}, ks:{ks}")
+    _, auc, ks = test_classifier(init_model, target_test_loader, "test")
+    print(f"[INFO] test auc:{auc}, ks:{ks}")
