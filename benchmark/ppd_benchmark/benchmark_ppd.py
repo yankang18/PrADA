@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from sklearn.utils import shuffle
 
-from data_process.benchmark_utils import run_benchmark, save_benchmark_result, find_args_for_best_metric
+from benchmark.benchmark_utils import run_benchmark, save_benchmark_result, find_args_for_best_metric
 from datasets.ppd_dataloader import get_selected_columns
 
 
@@ -38,7 +38,7 @@ def train_benchmark(samples_train, samples_test, tag):
     result_dict = dict()
     result_dict["ppd_benchmark_result"] = result_list
     result_dict['best_result'] = {'xgb': {'best_auc': best_auc, "best_arg": best_arg}}
-    save_benchmark_result(result=result_dict, to_dir="./", file_name=file_name)
+    save_benchmark_result(result=result_dict, to_dir="../../data_process/ppd_process/", file_name=file_name)
 
 
 def train_on_dann(file_dict, data_tag):
