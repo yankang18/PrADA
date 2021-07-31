@@ -112,11 +112,9 @@ def test_classifier(model, data_loader, tag):
     get_ks = lambda y_pred, y_true: ks_2samp(y_pred[y_true == 1], y_pred[y_true != 1]).statistic
     ks = get_ks(np.array(y_pos_pred_prob_list), np.array(y_real_list))
     print("[INFO]: {}/{}".format(correct, n_total))
-    print("[INFO]: roc_auc_score_0 : ", auc_0)
-    print("[INFO]: roc_auc_score_1 : ", auc_1)
-    print("[INFO]: ks test : ", ks)
-    # print("[INFO]: accuracy : ", accuracy_score(y_real_list, y_pred_list))
-    print("[INFO]: acc : ", acc)
+    # print("[INFO]: roc_auc_score_0 : ", auc_0)
+    print("[INFO]: test AUC : ", auc_1)
+    print("[INFO]: test KS  : ", ks)
     return acc, auc_1, ks
 
 
