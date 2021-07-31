@@ -1,6 +1,6 @@
 import argparse
 
-from experiments.income_census.global_config import fine_tune_hyperparameters, data_hyperparameters
+from experiments.income_census.train_config import fine_tune_hyperparameters, data_hyperparameters
 from experiments.income_census.train_census_fg_adapt_pretrain import create_fg_census_global_model
 from experiments.income_census.train_census_utils import finetune_census
 
@@ -18,7 +18,6 @@ if __name__ == "__main__":
     parser.add_argument('--pretrain_task_id', type=str)
     args = parser.parse_args()
     pretrain_task_id = args.pretrain_task_id
-    # pretrain_task_id = "20210729_census_fg_dann_all4000pos004v8_intrFalse_lr0.0006_bs128_me600_ts1627527504"
     print(f"[INFO] fine-tune pre-trained model with pretrain task id : {pretrain_task_id}")
 
     census_pretain_model_root_dir = data_hyperparameters['census_fg_pretrained_model_dir']

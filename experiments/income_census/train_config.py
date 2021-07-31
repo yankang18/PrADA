@@ -48,7 +48,6 @@ no_adaptation_hyperparameters = {
 }
 
 data_dir = census_data_creation['processed_data_dir']
-# data_tag = 'YOUR DATA TAG'
 
 # data_tag = "all4000pos001"
 # data_tag = 'all4000pos002'

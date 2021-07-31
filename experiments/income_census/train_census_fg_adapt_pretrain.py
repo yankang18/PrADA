@@ -1,7 +1,7 @@
 from collections import OrderedDict
 
 from data_process.census_process.mapping_resource import embedding_dim_map
-from experiments.income_census.global_config import fg_feature_extractor_architecture_list, data_tag, \
+from experiments.income_census.train_config import fg_feature_extractor_architecture_list, data_tag, \
     pre_train_hyperparameters, data_hyperparameters, intr_fg_feature_extractor_for_architecture_list
 from experiments.income_census.train_census_utils import pretrain_census
 from models.classifier import CensusFeatureAggregator

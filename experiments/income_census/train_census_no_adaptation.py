@@ -1,4 +1,4 @@
-from experiments.income_census.global_config import data_tag, no_adaptation_hyperparameters, data_hyperparameters
+from experiments.income_census.train_config import data_tag, no_adaptation_hyperparameters, data_hyperparameters
 from experiments.income_census.train_census_fg_adapt_pretrain import create_fg_census_global_model
 from experiments.income_census.train_census_no_fg_adapt_pretrain import create_no_fg_census_global_model
 from experiments.income_census.train_census_utils import train_no_adaptation

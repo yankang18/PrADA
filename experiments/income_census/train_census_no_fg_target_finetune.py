@@ -1,6 +1,6 @@
 import argparse
 
-from experiments.income_census.global_config import fine_tune_hyperparameters, data_hyperparameters
+from experiments.income_census.train_config import fine_tune_hyperparameters, data_hyperparameters
 from experiments.income_census.train_census_no_fg_adapt_pretrain import create_no_fg_census_global_model
 from experiments.income_census.train_census_utils import finetune_census
 
