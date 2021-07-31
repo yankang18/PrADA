@@ -488,10 +488,7 @@ education_value_map = {
     "Doctorate": 21,
 }
 
-continuous_cols = ["age", "gender", "education_year", "capital_gain", "capital_loss", "stock_dividends"]
-continuous_cols_v2 = ["age", "gender", "capital_gain", "capital_loss", "stock_dividends"]
-continuous_cols_v3 = ["age", "gender", "capital_gain", "capital_loss"]
-continuous_cols_v4 = ["age", "gender", "education_year", "capital_gain", "capital_loss"]
+continuous_cols = ["age", "gender", "education_year", "capital_gain", "capital_loss"]
 categorical_cols = ["class_worker", "major_ind_code", "major_occ_code", "unemp_reason", "full_or_part_emp",
                     "own_or_self",
                     "education", "race", "age_index", "gender_index", "marital_stat", "union_member", "vet_benefits",
@@ -502,7 +499,6 @@ categorical_cols = ["class_worker", "major_ind_code", "major_occ_code", "unemp_r
                     "hisp_origin", "country_father", "country_mother", "country_self", "citizenship"]
 target_col_name = "income_label"
 
-# edu_year age gender capital_gains capital_losses stock_dividends (num_emp vet_benefits hs_college) income_50k
 feature_group_map = {"employment": {"class_worker", "major_ind_code", "major_occ_code", "unemp_reason",
                                     "full_or_part_emp", "own_or_self"},
                      "demo": {"education", "race", "age_index", "gender_index", "marital_stat",
@@ -586,7 +582,6 @@ embedding_dim_map = {
 
 if __name__ == "__main__":
     for key, val in cate_to_index_map.items():
-        # print(val.values())
         num_values = len(set(val.values()))
         print(key, num_values)
 
