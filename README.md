@@ -57,7 +57,7 @@ In this section, we show the steps of running following four variants of **PrADA
 ### 2.1 Run PrADA
 
 1. Go to directory: **prada/experiments/income_census/**
-2. Configure hyperparameters using `global_config.py` file. 
+2. Configure hyperparameters using `train_config.py` file. 
    - The `using_interaction` must be set to `True`
 
 ```python
@@ -105,12 +105,14 @@ Once the training is completed, a pretrain task is returned, e.g.:
 python train_census_fg_target_finetune.py --pretrain_task_id 20210730_census_fg_adapt_all4000pos004_intrTrue_lr0.0005_bs128_me600_ts1627606557
 ```
 
+Output test AUC and test KS.
 
+ 
 
 ### 2.2 Run PrADA w/o IR
 
 1. Go to directory: **prada/experiments/income_census/**
-2. Configure hyperparameters using `global_config.py` file. 
+2. Configure hyperparameters using `train_config.py` file. 
    - The `using_interaction` must be set to `False`
 
 ```python
@@ -158,12 +160,14 @@ Once the training is completed, a task is returned, e.g.:
 python train_census_fg_target_finetune.py --pretrain_task_id 20210730_census_fg_adapt_all4000pos004_intrFalse_lr0.0005_bs128_me600_ts1627606557
 ```
 
+Output test AUC and test KS.
+
 
 
 ### 2.3 Run PrADA w/o FG&IR
 
 1. Go to directory: **prada/experiments/income_census/**
-2. Configure hyperparameters using `global_config.py` file. 
+2. Configure hyperparameters using `train_config.py` file. 
    - NOTE: the `using_interaction` will not be used in this setting because no feature group is applied. Therefore, leave it by default.
 
 ```python
@@ -211,12 +215,14 @@ Once the training is completed, a task is returned, e.g.:
 python train_census_no_fg_target_finetune.py --pretrain_task_id 20210730_census_no_fg_adapt_all4000pos004_lr0.0005_bs128_me600_ts1627612696
 ```
 
+Output test AUC and test KS.
+
 
 
 ### 2.4 Run PrADA w/o DA&FG&IR
 
 1. Go to directory: **prada/experiments/income_census/**
-2. Configure hyperparameters using `global_config.py` file. 
+2. Configure hyperparameters using `train_config.py` file. 
    - the `train_data_tag` specifies whether you use all samples (source + target) or just target samples for training.
    - NOTE: `apply_feature_group` specifies whether applying feature grouping or not. In this setting, we always set it to `False`.
 
@@ -246,5 +252,22 @@ Once the training is completed, a task is returned, e.g.:
 
 ```
 20210730_all4000pos004v8_census_no_ad_wo_fg_all_lr0.0005_bs128_ts1627613954_ve0/
+```
+
+Output test AUC and test KS.
+
+
+
+### 2.5 Run Test
+
+The test AUC and test KS on target test data will be given once the training is completed as shown above. You can also test the trained model on target test data with a separate command, shown as follows:
+
+Go to directory: **prada/experiments/income_census/**
+
+- `task_id` specifies the task of traing the model that you want to test.
+- `model_tag` specifies the variant of PrADA model. It can be `fg` (with feature group), `no_fg` (with no feature group) or `no_ad` (with no adaptation and no feature group)
+
+```
+python test_census_target.py --task_id 20210731_census_fg_adapt_all4000pos004_intrFalse_lr0.0005_bs128_me600_ts1627682125@target_20210731_rt_glr_lr0.0008_bs128_ts1627683284 --model_tag fg
 ```
 
