@@ -10,6 +10,7 @@ def pretrain_census(data_tag,
                     data_hyperparameters,
                     model,
                     apply_feature_group=True):
+
     # hyper-parameters
     using_interaction = learner_hyperparameters['using_interaction']
     momentum = learner_hyperparameters['momentum']
@@ -80,6 +81,7 @@ def finetune_census(pretrain_task_id,
                     learner_hyperparameters,
                     data_hyperparameters,
                     model):
+
     # hyper-parameters
     load_global_classifier = learner_hyperparameters['load_global_classifier']
     momentum = learner_hyperparameters['momentum']
@@ -163,7 +165,9 @@ def train_no_adaptation(data_tag,
                         learner_hyperparameters,
                         data_hyperparameters,
                         model):
+
     # hyper-parameters
+    apply_feature_group = learner_hyperparameters['apply_feature_group']
     train_data_tag = learner_hyperparameters['train_data_tag']
     momentum = learner_hyperparameters['momentum']
     weight_decay = learner_hyperparameters['weight_decay']
@@ -191,7 +195,8 @@ def train_no_adaptation(data_tag,
     print(f"[INFO] load src+tgt test from: {src_tgt_train_file_name}.")
 
     timestamp = get_timestamp()
-    date = get_current_date() + "_" + data_tag + "_census_no_ad_wo_fg"
+    fg_tag = "census_no_ad_w_fg" if apply_feature_group else "census_no_ad_wo_fg"
+    date = get_current_date() + "_" + data_tag + "_" + fg_tag
     tries = 1
     task_id_list = list()
     for version in range(tries):
