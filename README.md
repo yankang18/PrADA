@@ -271,3 +271,19 @@ Go to directory: **prada/experiments/income_census/**
 python test_census_target.py --task_id 20210731_census_fg_adapt_all4000pos004_intrFalse_lr0.0005_bs128_me600_ts1627682125@target_20210731_rt_glr_lr0.0008_bs128_ts1627683284 --model_tag fg
 ```
 
+## 3. Citation 
+
+Accepted for publication in IEEE Transactions on Big Data, 2022.
+Please kindly cite our paper if you find this code useful for your research.
+
+```
+@article{kang2022prada,
+  author={Kang, Yan and He, Yuanqin and Luo, Jiahuan and Fan, Tao and Liu, Yang and Yang, Qiang},
+  journal={IEEE Transactions on Big Data}, 
+  title={Privacy-preserving Federated Adversarial Domain Adaptation over Feature Groups for Interpretability}, 
+  year={2022},
+  volume={},
+  number={},
+  pages={1-12},
+  doi={10.1109/TBDATA.2022.3188292}}
+```
